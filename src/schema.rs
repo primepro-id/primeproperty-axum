@@ -55,6 +55,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    developers (id) {
+        id -> Int4,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        picture_url -> Nullable<Varchar>,
+        name -> Varchar,
+        slug -> Varchar,
+    }
+}
+
+diesel::table! {
     leads (id) {
         id -> Int4,
         user_id -> Uuid,
@@ -118,15 +129,13 @@ diesel::table! {
         #[max_length = 255]
         description_seo -> Nullable<Varchar>,
         price_down_payment -> Nullable<Int8>,
+        developer_id -> Nullable<Int4>,
     }
 }
 
 diesel::joinable!(leads -> agents (user_id));
 diesel::joinable!(leads -> properties (property_id));
 diesel::joinable!(properties -> agents (user_id));
+diesel::joinable!(properties -> developers (developer_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    agents,
-    leads,
-    properties,
-);
+diesel::allow_tables_to_appear_in_same_query!(agents, developers, leads, properties,);
