@@ -6,7 +6,7 @@ CREATE TABLE developers (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW (),
     picture_url VARCHAR,
     name VARCHAR NOT NULL,
-    slug VARCHAR NOT NULL
+    slug VARCHAR NOT NULL UNIQUE
 );
 
 ALTER TABLE properties
