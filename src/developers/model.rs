@@ -5,6 +5,7 @@ use diesel::{
 use serde::Serialize;
 
 use crate::db::DbPool;
+use crate::developers::controller::UpdateDeveloperSqlPayload;
 use crate::schema;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
@@ -36,6 +37,18 @@ impl Developer {
                 schema::developers::name.eq(name),
                 schema::developers::slug.eq(slug),
             ))
+            .get_result(conn)
+    }
+
+    pub(super) fn update(
+        pool: &DbPool,
+        id: &i32,
+        payload: &UpdateDeveloperSqlPayload,
+    ) -> QueryResult<Self> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        diesel::update(schema::developers::table)
+            .filter(schema::developers::id.eq(id))
+            .set(payload)
             .get_result(conn)
     }
 }
