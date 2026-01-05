@@ -22,4 +22,20 @@ impl Developer {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
         schema::developers::table.get_results(conn)
     }
+
+    pub(super) fn create(
+        pool: &DbPool,
+        picture_url: &Option<String>,
+        name: &str,
+        slug: &str,
+    ) -> QueryResult<Self> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        diesel::insert_into(schema::developers::table)
+            .values((
+                schema::developers::picture_url.eq(picture_url),
+                schema::developers::name.eq(name),
+                schema::developers::slug.eq(slug),
+            ))
+            .get_result(conn)
+    }
 }

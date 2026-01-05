@@ -2,7 +2,10 @@ use axum::{
     extract::{Request, State},
     middleware::Next,
     response::Response,
+    Json,
 };
+use reqwest::Method;
+use serde::Deserialize;
 
 use crate::{
     agents::{Agent, AgentRole},
@@ -16,22 +19,28 @@ pub(super) async fn developers_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response, AxumResponse<String>> {
-    let headers = req.headers();
-    let user_id = Session::extract_session_user_id(&headers);
-
-    let agent = match Agent::find_by_user_id(&pool, &user_id) {
-        Ok(agent) => agent,
-        Err(err) => {
-            let response = JsonResponse::send(403, None, Some(err.to_string()));
-            return Err(response);
-        }
-    };
-
-    match agent.role {
-        AgentRole::Admin => Ok(next.run(req).await),
+    let method = req.method();
+    match method {
+        &Method::GET => Ok(next.run(req).await),
         _ => {
-            let response = JsonResponse::send(403, None, None);
-            Err(response)
+            let headers = req.headers();
+            let user_id = Session::extract_session_user_id(&headers);
+
+            let agent = match Agent::find_by_user_id(&pool, &user_id) {
+                Ok(agent) => agent,
+                Err(err) => {
+                    let response = JsonResponse::send(403, None, Some(err.to_string()));
+                    return Err(response);
+                }
+            };
+
+            match agent.role {
+                AgentRole::Admin => Ok(next.run(req).await),
+                _ => {
+                    let response = JsonResponse::send(403, None, None);
+                    Err(response)
+                }
+            }
         }
     }
 }
@@ -51,4 +60,22 @@ pub(super) async fn find_many_developers(
     };
 
     JsonResponse::send(200, Some(res), None)
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CreateUpdateDeveloperPayload {
+    picture_url: Option<String>,
+    name: String,
+}
+
+pub(super) async fn create_developer(
+    State(pool): State<DbPool>,
+    Json(payload): Json<CreateUpdateDeveloperPayload>,
+) -> AxumResponse<Developer> {
+    let slug = &payload.name.to_lowercase().replace(" ", "-");
+
+    match Developer::create(&pool, &payload.picture_url, &payload.name, &slug) {
+        Ok(dev) => JsonResponse::send(201, Some(dev), None),
+        Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
+    }
 }
