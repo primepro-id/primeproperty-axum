@@ -10,4 +10,4 @@ CREATE TABLE developers (
 );
 
 ALTER TABLE properties
-ADD COLUMN developer_id INTEGER REFERENCES developers(id);
+ADD COLUMN developer_slug VARCHAR REFERENCES developers(slug);
