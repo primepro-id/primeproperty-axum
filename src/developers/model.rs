@@ -10,7 +10,7 @@ pub(super) struct Developer {
     id: i32,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
-    picture_url: Option<String>,
+    picture_url: String,
     name: String,
     slug: String,
 }
@@ -30,7 +30,7 @@ impl Developer {
 
     pub(super) fn create(
         pool: &DbPool,
-        picture_url: &Option<String>,
+        picture_url: &str,
         name: &str,
         slug: &str,
     ) -> QueryResult<Self> {

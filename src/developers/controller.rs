@@ -66,7 +66,7 @@ pub(super) async fn find_many_developers(
 
 #[derive(Debug, Deserialize)]
 pub(super) struct CreateDeveloperPayload {
-    picture_url: Option<String>,
+    picture_url: String,
     name: String,
 }
 

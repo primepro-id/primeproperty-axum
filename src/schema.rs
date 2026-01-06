@@ -59,7 +59,7 @@ diesel::table! {
         id -> Int4,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        picture_url -> Nullable<Varchar>,
+        picture_url -> Varchar,
         name -> Varchar,
         slug -> Varchar,
     }
