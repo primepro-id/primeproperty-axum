@@ -7,7 +7,7 @@ use crate::schema;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
 pub(super) struct Developer {
-    id: i32,
+    pub id: i32,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
     picture_url: String,
@@ -18,7 +18,16 @@ pub(super) struct Developer {
 impl Developer {
     pub(super) fn find_many(pool: &DbPool) -> QueryResult<Vec<Self>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-        schema::developers::table.get_results(conn)
+        schema::developers::table
+            .order_by(schema::developers::name.asc())
+            .get_results(conn)
+    }
+
+    pub(super) fn find_by_id(pool: &DbPool, id: &i32) -> QueryResult<Self> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        schema::developers::table
+            .filter(schema::developers::id.eq(id))
+            .get_result(conn)
     }
 
     pub(super) fn find_by_slug(pool: &DbPool, slug: &str) -> QueryResult<Self> {

@@ -76,6 +76,22 @@ pub(super) async fn create_developer(
 ) -> AxumResponse<Developer> {
     let slug = &payload.name.to_lowercase().replace(" ", "-");
 
+    let exist = match Developer::find_by_slug(&pool, &slug) {
+        Ok(_) => true,
+        Err(err) => match err {
+            diesel::result::Error::NotFound => false,
+            _ => return JsonResponse::send(500, None, Some(err.to_string())),
+        },
+    };
+
+    if exist {
+        return JsonResponse::send(
+            400,
+            None,
+            Some("Developer with the same name already exists".to_string()),
+        );
+    }
+
     match Developer::create(&pool, &payload.picture_url, &payload.name, &slug) {
         Ok(dev) => JsonResponse::send(201, Some(dev), None),
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
@@ -138,6 +154,21 @@ pub(super) async fn find_developer_by_slug(
     Path(slug): Path<String>,
 ) -> AxumResponse<Developer> {
     match Developer::find_by_slug(&pool, &slug) {
+        Ok(dev) => JsonResponse::send(200, Some(dev), None),
+        Err(err) => match err {
+            diesel::result::Error::NotFound => {
+                JsonResponse::send(404, None, Some("Developer not found".to_string()))
+            }
+            _ => JsonResponse::send(500, None, Some(err.to_string())),
+        },
+    }
+}
+
+pub(super) async fn find_developer_by_id(
+    State(pool): State<DbPool>,
+    Path(id): Path<i32>,
+) -> AxumResponse<Developer> {
+    match Developer::find_by_id(&pool, &id) {
         Ok(dev) => JsonResponse::send(200, Some(dev), None),
         Err(err) => match err {
             diesel::result::Error::NotFound => {
