@@ -117,3 +117,33 @@ pub(super) async fn update_developer(
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
     }
 }
+
+pub(super) async fn delete_developer(
+    State(pool): State<DbPool>,
+    Path(id): Path<i32>,
+) -> AxumResponse<Developer> {
+    match Developer::delete(&pool, &id) {
+        Ok(dev) => JsonResponse::send(200, Some(dev), None),
+        Err(err) => match err {
+            diesel::result::Error::NotFound => {
+                JsonResponse::send(404, None, Some("Developer not found".to_string()))
+            }
+            _ => JsonResponse::send(500, None, Some(err.to_string())),
+        },
+    }
+}
+
+pub(super) async fn find_developer_by_slug(
+    State(pool): State<DbPool>,
+    Path(slug): Path<String>,
+) -> AxumResponse<Developer> {
+    match Developer::find_by_slug(&pool, &slug) {
+        Ok(dev) => JsonResponse::send(200, Some(dev), None),
+        Err(err) => match err {
+            diesel::result::Error::NotFound => {
+                JsonResponse::send(404, None, Some("Developer not found".to_string()))
+            }
+            _ => JsonResponse::send(500, None, Some(err.to_string())),
+        },
+    }
+}

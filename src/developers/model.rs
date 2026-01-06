@@ -1,7 +1,4 @@
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, QueryResult,
-    Queryable, RunQueryDsl,
-};
+use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
 use serde::Serialize;
 
 use crate::db::DbPool;
@@ -22,6 +19,13 @@ impl Developer {
     pub(super) fn find_many(pool: &DbPool) -> QueryResult<Vec<Self>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
         schema::developers::table.get_results(conn)
+    }
+
+    pub(super) fn find_by_slug(pool: &DbPool, slug: &str) -> QueryResult<Self> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        schema::developers::table
+            .filter(schema::developers::slug.eq(slug))
+            .get_result(conn)
     }
 
     pub(super) fn create(
@@ -49,6 +53,13 @@ impl Developer {
         diesel::update(schema::developers::table)
             .filter(schema::developers::id.eq(id))
             .set(payload)
+            .get_result(conn)
+    }
+
+    pub(super) fn delete(pool: &DbPool, id: &i32) -> QueryResult<Self> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        diesel::delete(schema::developers::table)
+            .filter(schema::developers::id.eq(id))
             .get_result(conn)
     }
 }
