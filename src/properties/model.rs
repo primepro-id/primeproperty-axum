@@ -1,5 +1,5 @@
 use super::controllers::{
-    FindPropertyQuery, FindPropertySort, PropertyWithAgent, UpdateConfigurationsSqlPayload,
+    FindPropertyQuery, FindPropertySort, PropertyWithRelation, UpdateConfigurationsSqlPayload,
 };
 use super::enumerates::{Currency, RentTime, SoldChannel};
 use super::{
@@ -53,7 +53,7 @@ pub struct Property {
 }
 
 impl Property {
-    pub fn find_one_by_id(pool: &DbPool, id: &i32) -> QueryResult<PropertyWithAgent> {
+    pub fn find_one_by_id(pool: &DbPool, id: &i32) -> QueryResult<PropertyWithRelation> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         properties::table
@@ -181,7 +181,7 @@ impl Property {
         pool: &DbPool,
         property_id: &i32,
         query: &FindPropertyQuery,
-    ) -> QueryResult<Vec<PropertyWithAgent>> {
+    ) -> QueryResult<Vec<PropertyWithRelation>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         let mut property_query = properties::table
@@ -228,7 +228,7 @@ impl Property {
             .order_by(properties::id.desc())
             .inner_join(agents::table)
             .select((properties::all_columns, agents::all_columns))
-            .get_results::<PropertyWithAgent>(conn)
+            .get_results::<PropertyWithRelation>(conn)
     }
 }
 
@@ -240,7 +240,7 @@ impl Crud for Property {
     type Output = Self;
     type SchemaTable = properties::table;
     type CreatePayload = CreateUpdatePropertySqlPayload;
-    type FindManyOutput = PropertyWithAgent;
+    type FindManyOutput = PropertyWithRelation;
     type FindManyParam = FindPropertyQuery;
 
     fn create(
@@ -378,6 +378,10 @@ impl Crud for Property {
             None => {}
         }
 
+        if let Some(dev_id) = &query.developer_id {
+            property_query = property_query.filter(properties::developer_id.eq(dev_id));
+        }
+
         if let Some(sort) = &query.sort {
             match sort {
                 FindPropertySort::LowestPrice => {
@@ -405,7 +409,7 @@ impl Crud for Property {
         property_query
             .inner_join(agents::table)
             .select((properties::all_columns, agents::all_columns))
-            .get_results::<PropertyWithAgent>(conn)
+            .get_results::<PropertyWithRelation>(conn)
     }
 
     fn count_find_many_rows(
@@ -503,6 +507,10 @@ impl Crud for Property {
                     property_query.filter(properties::building_type.eq(build_type.to_lowercase()))
             }
             _ => {}
+        }
+
+        if let Some(dev_id) = &query.developer_id {
+            property_query = property_query.filter(properties::developer_id.eq(dev_id));
         }
 
         property_query.count().get_result(conn)

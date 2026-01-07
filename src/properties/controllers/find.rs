@@ -35,15 +35,16 @@ pub struct FindPropertyQuery {
     pub purchase_status: Option<PurchaseStatus>,
     pub building_type: Option<String>,
     pub sort: Option<FindPropertySort>,
+    pub developer_id: Option<i32>,
 }
 
-pub(crate) type PropertyWithAgent = (Property, Agent);
+pub(crate) type PropertyWithRelation = (Property, Agent);
 
 pub async fn find_many_properties(
     State(pool): State<DbPool>,
     headers: HeaderMap,
     Query(query): Query<FindPropertyQuery>,
-) -> AxumResponse<JsonFindResponse<Vec<PropertyWithAgent>>> {
+) -> AxumResponse<JsonFindResponse<Vec<PropertyWithRelation>>> {
     let header_user_id = headers.get("x-user-id");
     let (user_id, role) = match header_user_id {
         Some(_) => {
@@ -88,7 +89,7 @@ pub async fn find_many_properties(
 pub async fn find_one_by_id(
     State(pool): State<DbPool>,
     Path(id): Path<i32>,
-) -> AxumResponse<PropertyWithAgent> {
+) -> AxumResponse<PropertyWithRelation> {
     match Property::find_one_by_id(&pool, &id) {
         Ok(property) => JsonResponse::send(200, Some(property), None),
         Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
@@ -145,7 +146,7 @@ pub async fn find_site_paths(State(pool): State<DbPool>) -> AxumResponse<Vec<Str
 #[derive(Debug, Serialize)]
 pub struct AgentWithProperties {
     agent: Agent,
-    properties: Vec<PropertyWithAgent>,
+    properties: Vec<PropertyWithRelation>,
 }
 
 pub async fn find_many_by_agent_name(
@@ -174,7 +175,7 @@ pub async fn find_many_by_agent_name(
 pub async fn find_many_related(
     State(pool): State<DbPool>,
     Path(id): Path<i32>,
-) -> AxumResponse<Vec<PropertyWithAgent>> {
+) -> AxumResponse<Vec<PropertyWithRelation>> {
     let property = match Property::find_one_by_id(&pool, &id) {
         Ok(property) => property,
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),

@@ -71,6 +71,7 @@ pub(crate) struct CreateUpdatePropertyApiPayload {
     rent_time: Option<RentTime>,
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 #[derive(Deserialize, Serialize, Insertable, AsChangeset)]
@@ -99,6 +100,7 @@ pub struct CreateUpdatePropertySqlPayload {
     rent_time: Option<RentTime>,
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 impl CreateUpdatePropertyApiPayload {
@@ -117,26 +119,27 @@ impl CreateUpdatePropertyApiPayload {
             province: self.province.trim().to_lowercase(),
             regency: self.regency.trim().to_lowercase(),
             street: self.street.trim().to_lowercase(),
-            gmap_iframe: self.gmap_iframe.clone(),
+            gmap_iframe: self.gmap_iframe,
             price: self.price,
             images: serde_json::json!(&self.images),
-            purchase_status: self.purchase_status.clone(),
-            sold_status: self.sold_status.clone(),
+            purchase_status: self.purchase_status,
+            sold_status: self.sold_status,
             measurements: serde_json::json!(&self.measurements),
             building_type: self.building_type.to_lowercase(),
-            building_condition: self.building_condition.clone(),
-            building_furniture_capacity: self.building_furniture_capacity.clone(),
+            building_condition: self.building_condition,
+            building_furniture_capacity: self.building_furniture_capacity,
             building_certificate: match self.building_certificate {
                 Some(cert) => Some(cert.to_lowercase()),
                 None => None,
             },
             specifications: serde_json::json!(&self.specifications),
             facilities: serde_json::json!(&self.facilities),
-            sold_channel: self.sold_channel.clone(),
-            currency: self.currency.clone(),
-            rent_time: self.rent_time.clone(),
-            description_seo: self.description_seo.clone(),
-            price_down_payment: self.price_down_payment.clone(),
+            sold_channel: self.sold_channel,
+            currency: self.currency,
+            rent_time: self.rent_time,
+            description_seo: self.description_seo,
+            price_down_payment: self.price_down_payment,
+            developer_id: self.developer_id,
         }
     }
 }
