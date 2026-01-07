@@ -8,5 +8,8 @@ CREATE TABLE developers (
     name VARCHAR NOT NULL
 );
 
+SELECT
+    diesel_manage_updated_at ('developers');
+
 ALTER TABLE properties
 ADD COLUMN developer_id INTEGER REFERENCES developers(id) ON UPDATE CASCADE ON DELETE CASCADE;
