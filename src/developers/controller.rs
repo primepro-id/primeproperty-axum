@@ -4,7 +4,7 @@ use axum::{
     response::Response,
     Json,
 };
-use diesel::prelude::AsChangeset;
+use diesel::prelude::{AsChangeset, Insertable};
 use reqwest::Method;
 use serde::Deserialize;
 
@@ -64,9 +64,10 @@ pub(super) async fn find_many_developers(
     JsonResponse::send(200, Some(res), None)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Insertable)]
+#[diesel(table_name = schema::developers)]
 pub(super) struct CreateDeveloperPayload {
-    picture_url: String,
+    logo_path: String,
     name: String,
 }
 
@@ -74,42 +75,17 @@ pub(super) async fn create_developer(
     State(pool): State<DbPool>,
     Json(payload): Json<CreateDeveloperPayload>,
 ) -> AxumResponse<Developer> {
-    let slug = &payload.name.to_lowercase().replace(" ", "-");
-
-    let exist = match Developer::find_by_slug(&pool, &slug) {
-        Ok(_) => true,
-        Err(err) => match err {
-            diesel::result::Error::NotFound => false,
-            _ => return JsonResponse::send(500, None, Some(err.to_string())),
-        },
-    };
-
-    if exist {
-        return JsonResponse::send(
-            400,
-            None,
-            Some("Developer with the same name already exists".to_string()),
-        );
-    }
-
-    match Developer::create(&pool, &payload.picture_url, &payload.name, &slug) {
+    match Developer::create(&pool, &payload) {
         Ok(dev) => JsonResponse::send(201, Some(dev), None),
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub(super) struct UpdateDeveloperPayload {
-    picture_url: Option<String>,
-    name: Option<String>,
-}
-
 #[derive(Debug, Deserialize, AsChangeset)]
 #[diesel(table_name = schema::developers)]
-pub(super) struct UpdateDeveloperSqlPayload {
-    picture_url: Option<String>,
+pub(super) struct UpdateDeveloperPayload {
+    logo_path: Option<String>,
     name: Option<String>,
-    slug: Option<String>,
 }
 
 pub(super) async fn update_developer(
@@ -117,18 +93,7 @@ pub(super) async fn update_developer(
     Path(id): Path<i32>,
     Json(payload): Json<UpdateDeveloperPayload>,
 ) -> AxumResponse<Developer> {
-    let slug = match &payload.name {
-        Some(n) => Some(n.to_lowercase().replace(" ", "-")),
-        None => None,
-    };
-
-    let sql_payload = UpdateDeveloperSqlPayload {
-        picture_url: payload.picture_url,
-        name: payload.name,
-        slug,
-    };
-
-    match Developer::update(&pool, &id, &sql_payload) {
+    match Developer::update(&pool, &id, &payload) {
         Ok(dev) => JsonResponse::send(200, Some(dev), None),
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
     }
@@ -139,21 +104,6 @@ pub(super) async fn delete_developer(
     Path(id): Path<i32>,
 ) -> AxumResponse<Developer> {
     match Developer::delete(&pool, &id) {
-        Ok(dev) => JsonResponse::send(200, Some(dev), None),
-        Err(err) => match err {
-            diesel::result::Error::NotFound => {
-                JsonResponse::send(404, None, Some("Developer not found".to_string()))
-            }
-            _ => JsonResponse::send(500, None, Some(err.to_string())),
-        },
-    }
-}
-
-pub(super) async fn find_developer_by_slug(
-    State(pool): State<DbPool>,
-    Path(slug): Path<String>,
-) -> AxumResponse<Developer> {
-    match Developer::find_by_slug(&pool, &slug) {
         Ok(dev) => JsonResponse::send(200, Some(dev), None),
         Err(err) => match err {
             diesel::result::Error::NotFound => {

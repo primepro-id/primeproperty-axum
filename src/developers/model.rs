@@ -2,7 +2,7 @@ use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
 use serde::Serialize;
 
 use crate::db::DbPool;
-use crate::developers::controller::UpdateDeveloperSqlPayload;
+use crate::developers::controller::{CreateDeveloperPayload, UpdateDeveloperPayload};
 use crate::schema;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
@@ -10,9 +10,8 @@ pub(super) struct Developer {
     pub id: i32,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
-    picture_url: String,
+    logo_path: String,
     name: String,
-    slug: String,
 }
 
 impl Developer {
@@ -30,33 +29,17 @@ impl Developer {
             .get_result(conn)
     }
 
-    pub(super) fn find_by_slug(pool: &DbPool, slug: &str) -> QueryResult<Self> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-        schema::developers::table
-            .filter(schema::developers::slug.eq(slug))
-            .get_result(conn)
-    }
-
-    pub(super) fn create(
-        pool: &DbPool,
-        picture_url: &str,
-        name: &str,
-        slug: &str,
-    ) -> QueryResult<Self> {
+    pub(super) fn create(pool: &DbPool, payload: &CreateDeveloperPayload) -> QueryResult<Self> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
         diesel::insert_into(schema::developers::table)
-            .values((
-                schema::developers::picture_url.eq(picture_url),
-                schema::developers::name.eq(name),
-                schema::developers::slug.eq(slug),
-            ))
+            .values(payload)
             .get_result(conn)
     }
 
     pub(super) fn update(
         pool: &DbPool,
         id: &i32,
-        payload: &UpdateDeveloperSqlPayload,
+        payload: &UpdateDeveloperPayload,
     ) -> QueryResult<Self> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
         diesel::update(schema::developers::table)

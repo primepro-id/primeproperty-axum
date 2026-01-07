@@ -49,7 +49,7 @@ pub struct Property {
     rent_time: Option<RentTime>,
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
-    developer_slug: Option<String>,
+    developer_id: Option<i32>,
 }
 
 impl Property {
