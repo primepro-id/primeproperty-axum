@@ -1,5 +1,6 @@
 mod agents;
 mod db;
+mod developers;
 mod leads;
 mod middleware;
 mod properties;
@@ -58,6 +59,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .nest("/agents", agents::agent_routes(pool.clone()))
+        .nest("/developers", developers::developers_routes(pool.clone()))
         .nest("/leads", leads::lead_routes())
         .nest("/properties", properties::property_routes())
         .with_state(pool)
