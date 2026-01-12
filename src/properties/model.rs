@@ -50,6 +50,7 @@ pub struct Property {
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
     developer_id: Option<i32>,
+    bank_id: Option<i32>,
 }
 
 impl Property {
