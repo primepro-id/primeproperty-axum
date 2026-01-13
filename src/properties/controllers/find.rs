@@ -36,6 +36,7 @@ pub struct FindPropertyQuery {
     pub building_type: Option<String>,
     pub sort: Option<FindPropertySort>,
     pub developer_id: Option<i32>,
+    pub bank_id: Option<i32>,
 }
 
 pub(crate) type PropertyWithRelation = (Property, Agent);

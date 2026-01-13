@@ -383,6 +383,10 @@ impl Crud for Property {
             property_query = property_query.filter(properties::developer_id.eq(dev_id));
         }
 
+        if let Some(bank_id) = &query.bank_id {
+            property_query = property_query.filter(properties::bank_id.eq(bank_id));
+        }
+
         if let Some(sort) = &query.sort {
             match sort {
                 FindPropertySort::LowestPrice => {
@@ -512,6 +516,10 @@ impl Crud for Property {
 
         if let Some(dev_id) = &query.developer_id {
             property_query = property_query.filter(properties::developer_id.eq(dev_id));
+        }
+
+        if let Some(bank_id) = &query.bank_id {
+            property_query = property_query.filter(properties::bank_id.eq(bank_id));
         }
 
         property_query.count().get_result(conn)
