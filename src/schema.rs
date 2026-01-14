@@ -55,6 +55,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    banks (id) {
+        id -> Int4,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        logo_path -> Varchar,
+        name -> Varchar,
+    }
+}
+
+diesel::table! {
     developers (id) {
         id -> Int4,
         created_at -> Timestamp,
@@ -129,12 +139,14 @@ diesel::table! {
         description_seo -> Nullable<Varchar>,
         price_down_payment -> Nullable<Int8>,
         developer_id -> Nullable<Int4>,
+        bank_id -> Nullable<Int4>,
     }
 }
 
 diesel::joinable!(leads -> agents (user_id));
 diesel::joinable!(leads -> properties (property_id));
 diesel::joinable!(properties -> agents (user_id));
+diesel::joinable!(properties -> banks (bank_id));
 diesel::joinable!(properties -> developers (developer_id));
 
-diesel::allow_tables_to_appear_in_same_query!(agents, developers, leads, properties,);
+diesel::allow_tables_to_appear_in_same_query!(agents, banks, developers, leads, properties,);

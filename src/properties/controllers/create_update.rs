@@ -72,6 +72,7 @@ pub(crate) struct CreateUpdatePropertyApiPayload {
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
     developer_id: Option<i32>,
+    bank_id: Option<i32>,
 }
 
 #[derive(Deserialize, Serialize, Insertable, AsChangeset)]
@@ -101,6 +102,7 @@ pub struct CreateUpdatePropertySqlPayload {
     description_seo: Option<String>,
     price_down_payment: Option<i64>,
     developer_id: Option<i32>,
+    bank_id: Option<i32>,
 }
 
 impl CreateUpdatePropertyApiPayload {
@@ -140,6 +142,7 @@ impl CreateUpdatePropertyApiPayload {
             description_seo: self.description_seo,
             price_down_payment: self.price_down_payment,
             developer_id: self.developer_id,
+            bank_id: self.bank_id,
         }
     }
 }
