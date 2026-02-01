@@ -294,89 +294,59 @@ impl Crud for Property {
             },
         };
 
-        match &query.s {
-            Some(search_query) => match search_query.parse::<i32>() {
-                Ok(id) => property_query = property_query.filter(properties::id.eq(id)),
+        if let Some(search_query) = &query.s {
+            match search_query.parse::<i32>() {
+                Ok(id) => {
+                    property_query = property_query
+                        .filter(properties::id.eq(id))
+                        .order_by(properties::id.desc())
+                }
                 Err(_) => {
                     property_query = property_query
                         .filter(similarity(properties::site_path, search_query).gt(0.1))
+                        .order_by((
+                            properties::site_path,
+                            similarity(properties::site_path, search_query).desc(),
+                        ))
                 }
-            },
-            None => {}
+            }
         }
 
-        match &query.province {
-            Some(province_query) => {
-                property_query =
-                    property_query.filter(properties::province.eq(province_query.to_lowercase()));
-            }
-            None => {}
+        if let Some(province_query) = &query.province {
+            property_query =
+                property_query.filter(properties::province.eq(province_query.to_lowercase()));
         }
 
-        match &query.regency {
-            Some(regency_query) => {
-                property_query =
-                    property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
-            }
-            None => {}
+        if let Some(regency_query) = &query.regency {
+            property_query =
+                property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
         }
 
-        match &query.street {
-            Some(street_query) => {
-                property_query =
-                    property_query.filter(properties::street.eq(street_query.to_lowercase()));
-            }
-            None => {}
+        if let Some(street_query) = &query.street {
+            property_query =
+                property_query.filter(properties::street.eq(street_query.to_lowercase()));
         }
 
-        match &query.is_popular {
-            Some(is_popular) => {
-                let filter_json = serde_json::json!({ "is_popular": is_popular});
-                property_query =
-                    property_query.filter(properties::configurations.contains(filter_json))
-            }
-            None => {}
+        if let Some(is_popular) = &query.is_popular {
+            let filter_json = serde_json::json!({ "is_popular": is_popular});
+            property_query = property_query.filter(properties::configurations.contains(filter_json))
         }
 
-        match &query.sold_status {
-            Some(sold_status) => {
-                property_query = property_query.filter(properties::sold_status.eq(sold_status))
-            }
-            _ => {}
+        if let Some(sold_status) = &query.sold_status {
+            property_query = property_query.filter(properties::sold_status.eq(sold_status))
         }
 
-        match &query.purchase_status {
-            Some(purchase_status) => {
-                property_query = property_query.filter(
-                    properties::purchase_status
-                        .eq(purchase_status)
-                        .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
-                )
-            }
-            _ => {}
+        if let Some(purchase_status) = &query.purchase_status {
+            property_query = property_query.filter(
+                properties::purchase_status
+                    .eq(purchase_status)
+                    .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
+            )
         }
 
-        match &query.building_type {
-            Some(build_type) => {
-                property_query =
-                    property_query.filter(properties::building_type.eq(build_type.to_lowercase()))
-            }
-            _ => {}
-        }
-
-        match &query.limit {
-            Some(limit) => {
-                match &query.page {
-                    Some(page) => {
-                        let offset = (page - 1) * limit;
-                        property_query = property_query.offset(offset).limit(limit.clone());
-                    }
-                    None => {
-                        property_query = property_query.limit(limit.clone());
-                    }
-                };
-            }
-            None => {}
+        if let Some(building_type) = &query.building_type {
+            property_query =
+                property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
         }
 
         if let Some(dev_id) = &query.developer_id {
@@ -387,28 +357,28 @@ impl Crud for Property {
             property_query = property_query.filter(properties::bank_id.eq(bank_id));
         }
 
-        if let Some(sort) = &query.sort {
-            match sort {
+        if let Some(limit) = &query.limit {
+            match &query.page {
+                Some(page) => {
+                    let offset = (page - 1) * limit;
+                    property_query = property_query.offset(offset).limit(limit.clone());
+                }
+                None => {
+                    property_query = property_query.limit(limit.clone());
+                }
+            };
+        }
+
+        match &query.sort {
+            Some(sort) => match sort {
                 FindPropertySort::LowestPrice => {
                     property_query = property_query.order_by(properties::price.asc())
                 }
                 FindPropertySort::HighestPrice => {
                     property_query = property_query.order_by(properties::price.desc())
                 }
-            }
-        } else {
-            match &query.s {
-                Some(search_query) => match search_query.parse::<i32>() {
-                    Ok(_) => property_query = property_query.order_by(properties::id.desc()),
-                    Err(_) => {
-                        property_query = property_query.order_by((
-                            properties::site_path,
-                            similarity(properties::site_path, search_query).desc(),
-                        ))
-                    }
-                },
-                None => property_query = property_query.order_by(properties::id.desc()),
-            }
+            },
+            None => property_query = property_query.order_by(properties::id.desc()),
         }
 
         property_query
@@ -445,8 +415,8 @@ impl Crud for Property {
                 .into_boxed(),
         };
 
-        match &query.s {
-            Some(search_query) => match search_query.parse::<i32>() {
+        if let Some(search_query) = &query.s {
+            match search_query.parse::<i32>() {
                 Ok(id) => property_query = property_query.filter(properties::id.eq(id)),
                 Err(_) => {
                     property_query = property_query.filter(
@@ -459,59 +429,39 @@ impl Crud for Property {
                             .or(properties::street.ilike(format!("{}%", search_query))),
                     )
                 }
-            },
-            None => {}
+            }
         }
 
-        match &query.province {
-            Some(province_query) => {
-                property_query =
-                    property_query.filter(properties::province.eq(province_query.to_lowercase()));
-            }
-            None => {}
+        if let Some(province_query) = &query.province {
+            property_query =
+                property_query.filter(properties::province.eq(province_query.to_lowercase()));
         }
 
-        match &query.regency {
-            Some(regency_query) => {
-                property_query =
-                    property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
-            }
-            None => {}
+        if let Some(regency_query) = &query.regency {
+            property_query =
+                property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
         }
 
-        match &query.is_popular {
-            Some(is_popular) => {
-                let filter_json = serde_json::json!({ "is_popular": is_popular});
-                property_query =
-                    property_query.filter(properties::configurations.contains(filter_json))
-            }
-            None => {}
+        if let Some(is_popular) = &query.is_popular {
+            let filter_json = serde_json::json!({ "is_popular": is_popular});
+            property_query = property_query.filter(properties::configurations.contains(filter_json))
         }
 
-        match &query.sold_status {
-            Some(sold_status) => {
-                property_query = property_query.filter(properties::sold_status.eq(sold_status))
-            }
-            _ => {}
+        if let Some(sold_status) = &query.sold_status {
+            property_query = property_query.filter(properties::sold_status.eq(sold_status))
         }
 
-        match &query.purchase_status {
-            Some(purchase_status) => {
-                property_query = property_query.filter(
-                    properties::purchase_status
-                        .eq(purchase_status)
-                        .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
-                )
-            }
-            _ => {}
+        if let Some(purchase_status) = &query.purchase_status {
+            property_query = property_query.filter(
+                properties::purchase_status
+                    .eq(purchase_status)
+                    .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
+            )
         }
 
-        match &query.building_type {
-            Some(build_type) => {
-                property_query =
-                    property_query.filter(properties::building_type.eq(build_type.to_lowercase()))
-            }
-            _ => {}
+        if let Some(building_type) = &query.building_type {
+            property_query =
+                property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
         }
 
         if let Some(dev_id) = &query.developer_id {
