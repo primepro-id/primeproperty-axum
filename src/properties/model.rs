@@ -1,20 +1,22 @@
-use super::controllers::{
-    FindPropertyQuery, FindPropertySort, PropertyWithRelation, UpdateConfigurationsSqlPayload,
-};
-use super::enumerates::{Currency, RentTime, SoldChannel};
 use super::{
-    controllers::CreateUpdatePropertySqlPayload,
-    enumerates::{BuildingCondition, FurnitureCapacity, PurchaseStatus, SoldStatus},
+    controllers::{
+        CreateUpdatePropertySqlPayload, FindPropertyQuery, FindPropertySort, PropertyWithRelation,
+        UpdateConfigurationsSqlPayload,
+    },
+    enumerates::{
+        BuildingCondition, Currency, FurnitureCapacity, PurchaseStatus, RentTime, SoldChannel,
+        SoldStatus,
+    },
 };
-use crate::agents::AgentRole;
-use crate::traits::Crud;
 use crate::{
+    agents::AgentRole,
     db::DbPool,
-    schema::{agents, properties},
+    schema::{agents, developers, properties},
+    traits::Crud,
 };
 use diesel::{
-    BoolExpressionMethods, ExpressionMethods, PgJsonbExpressionMethods, PgTextExpressionMethods,
-    QueryDsl, QueryResult, Queryable, RunQueryDsl,
+    BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, PgJsonbExpressionMethods,
+    PgTextExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl,
 };
 use serde::Serialize;
 
@@ -60,7 +62,12 @@ impl Property {
         properties::table
             .filter(properties::id.eq(id))
             .inner_join(agents::table)
-            .select((properties::all_columns, agents::all_columns))
+            .left_join(developers::table)
+            .select((
+                properties::all_columns,
+                agents::all_columns,
+                developers::all_columns.nullable(),
+            ))
             .get_result(conn)
     }
 
@@ -228,7 +235,12 @@ impl Property {
         property_query
             .order_by(properties::id.desc())
             .inner_join(agents::table)
-            .select((properties::all_columns, agents::all_columns))
+            .left_join(developers::table)
+            .select((
+                properties::all_columns,
+                agents::all_columns,
+                developers::all_columns.nullable(),
+            ))
             .get_results::<PropertyWithRelation>(conn)
     }
 }
@@ -332,6 +344,12 @@ impl Crud for Property {
             property_query = property_query.filter(properties::configurations.contains(filter_json))
         }
 
+        if let Some(is_prime) = &query.is_prime {
+            if *is_prime {
+                property_query = property_query.filter(properties::developer_id.is_not_null())
+            }
+        }
+
         if let Some(sold_status) = &query.sold_status {
             property_query = property_query.filter(properties::sold_status.eq(sold_status))
         }
@@ -383,7 +401,12 @@ impl Crud for Property {
 
         property_query
             .inner_join(agents::table)
-            .select((properties::all_columns, agents::all_columns))
+            .left_join(developers::table)
+            .select((
+                properties::all_columns,
+                agents::all_columns,
+                developers::all_columns.nullable(),
+            ))
             .get_results::<PropertyWithRelation>(conn)
     }
 
@@ -445,6 +468,12 @@ impl Crud for Property {
         if let Some(is_popular) = &query.is_popular {
             let filter_json = serde_json::json!({ "is_popular": is_popular});
             property_query = property_query.filter(properties::configurations.contains(filter_json))
+        }
+
+        if let Some(is_prime) = &query.is_prime {
+            if *is_prime {
+                property_query = property_query.filter(properties::developer_id.is_not_null())
+            }
         }
 
         if let Some(sold_status) = &query.sold_status {
