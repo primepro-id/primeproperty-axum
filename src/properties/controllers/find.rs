@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     agents::Agent,
     db::DbPool,
+    developers::Developer,
     middleware::{AxumResponse, JsonFindResponse, JsonResponse, Session},
     properties::model::Property,
 };
@@ -31,6 +32,7 @@ pub struct FindPropertyQuery {
     pub page: Option<i64>,
     pub limit: Option<i64>,
     pub is_popular: Option<bool>,
+    pub is_prime: Option<bool>,
     pub sold_status: Option<SoldStatus>,
     pub purchase_status: Option<PurchaseStatus>,
     pub building_type: Option<String>,
@@ -39,7 +41,7 @@ pub struct FindPropertyQuery {
     pub bank_id: Option<i32>,
 }
 
-pub(crate) type PropertyWithRelation = (Property, Agent);
+pub(crate) type PropertyWithRelation = (Property, Agent, Option<Developer>);
 
 pub async fn find_many_properties(
     State(pool): State<DbPool>,

@@ -6,7 +6,7 @@ use crate::developers::controller::{CreateDeveloperPayload, UpdateDeveloperPaylo
 use crate::schema;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
-pub(super) struct Developer {
+pub struct Developer {
     pub id: i32,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
