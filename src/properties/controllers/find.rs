@@ -99,53 +99,6 @@ pub async fn find_one_by_id(
     }
 }
 
-pub async fn find_site_paths(State(pool): State<DbPool>) -> AxumResponse<Vec<String>> {
-    let mut site_paths = vec![
-        format!("/{}", PurchaseStatus::ForSale.to_slug()),
-        format!("/{}", PurchaseStatus::ForRent.to_slug()),
-    ];
-    if let Ok(building_types) = Property::find_distinct_building_type_paths(&pool) {
-        for (purchase_status, b_type) in building_types {
-            let path = format!(
-                "/{}/{}",
-                purchase_status.to_slug(),
-                b_type.replace(" ", "-")
-            );
-            site_paths.push(path);
-        }
-    }
-    if let Ok(provinces) = Property::find_distinct_province_paths(&pool) {
-        for (purchase_status, b_type, province) in provinces {
-            let path = format!(
-                "/{}/{}/{}",
-                purchase_status.to_slug(),
-                b_type.replace(" ", "-"),
-                province.replace(" ", "-")
-            );
-            site_paths.push(path);
-        }
-    }
-
-    if let Ok(regencies) = Property::find_distinct_regency_paths(&pool) {
-        for (purchase_status, b_type, province, regency) in regencies {
-            let path = format!(
-                "/{}/{}/{}/{}",
-                purchase_status.to_slug(),
-                b_type.replace(" ", "-"),
-                province.replace(" ", "-"),
-                regency.replace(" ", "-")
-            );
-            site_paths.push(path);
-        }
-    }
-    if let Ok(distinct_site_paths) = Property::find_distinct_site_paths(&pool) {
-        for path in distinct_site_paths {
-            site_paths.push(path);
-        }
-    }
-    JsonResponse::send(200, Some(site_paths), None)
-}
-
 #[derive(Debug, Serialize)]
 pub struct AgentWithProperties {
     agent: Agent,
