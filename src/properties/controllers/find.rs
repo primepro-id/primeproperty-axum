@@ -191,7 +191,6 @@ pub async fn find_many_related(
         }
     };
 
-    println!("Query: {:?}", query);
     let property_with_agent = match Property::find_many_related(&pool, &id, &query) {
         Ok(property_with_agent) => property_with_agent,
         Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
@@ -203,6 +202,36 @@ pub async fn find_many_related(
 pub async fn find_all_property_agents(State(pool): State<DbPool>) -> AxumResponse<Vec<Agent>> {
     match Agent::find_all(&pool) {
         Ok(agents) => JsonResponse::send(200, Some(agents), None),
+        Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
+    }
+}
+
+#[derive(Serialize)]
+pub struct PropertyNavigation {
+    site_path: String,
+    purchase_status: PurchaseStatus,
+    building_type: String,
+    province: String,
+    regency: String,
+    street: String,
+}
+
+pub async fn find_navigation(State(pool): State<DbPool>) -> AxumResponse<Vec<PropertyNavigation>> {
+    match Property::find_navigation(&pool) {
+        Ok(nav) => {
+            let navigation = nav
+                .into_iter()
+                .map(|n| PropertyNavigation {
+                    site_path: n.0,
+                    purchase_status: n.1,
+                    building_type: n.2,
+                    province: n.3,
+                    regency: n.4,
+                    street: n.5,
+                })
+                .collect();
+            JsonResponse::send(200, Some(navigation), None)
+        }
         Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
     }
 }
