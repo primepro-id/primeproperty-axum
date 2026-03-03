@@ -243,6 +243,24 @@ impl Property {
             ))
             .get_results::<PropertyWithRelation>(conn)
     }
+
+    pub fn find_navigation(
+        pool: &DbPool,
+    ) -> QueryResult<Vec<(String, PurchaseStatus, String, String, String, String)>> {
+        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        properties::table
+            .distinct_on(properties::site_path)
+            .select((
+                properties::site_path,
+                properties::purchase_status,
+                properties::building_type,
+                properties::province,
+                properties::regency,
+                properties::street,
+            ))
+            .order(properties::site_path.asc())
+            .get_results(conn)
+    }
 }
 
 diesel::define_sql_function! {
