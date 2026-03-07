@@ -6,7 +6,6 @@ mod leads;
 mod middleware;
 mod properties;
 mod schema;
-mod traits;
 
 use crate::db::build_db_pool;
 use axum::http::HeaderValue;

@@ -3,7 +3,6 @@ use crate::middleware::Session;
 use crate::properties::enumerates::{Currency, RentTime, SoldChannel, SoldStatus};
 use crate::properties::model::Property;
 use crate::schema;
-use crate::traits::Crud;
 use crate::{
     db::DbPool,
     middleware::{AxumResponse, JsonResponse},

@@ -1,7 +1,6 @@
 use crate::agents::Agent;
 use crate::middleware::{JsonFindResponse, JsonResponse, Session};
 use crate::properties::Property;
-use crate::traits::Crud;
 use crate::{db::DbPool, middleware::AxumResponse, schema};
 use axum::extract::{Json, Query, State};
 use axum::http::HeaderMap;

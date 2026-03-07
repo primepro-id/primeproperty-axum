@@ -9,7 +9,6 @@ use super::controller::PAGE_SIZE;
 use super::controller::{CreateAgentPayload, FindAgentQuery, UpdateAgentPayload};
 use crate::db::DbPool;
 use crate::schema::agents;
-use crate::traits::Crud;
 
 #[derive(Debug, Serialize, Queryable)]
 pub struct Agent {
@@ -88,20 +87,12 @@ impl Agent {
             .filter(agents::email.ne("admin@primeproindonesia.com"))
             .get_results(conn)
     }
-}
 
-impl Crud for Agent {
-    type Output = Self;
-    type SchemaTable = agents::table;
-    type CreatePayload = CreateAgentPayload;
-    type FindManyOutput = Self;
-    type FindManyParam = FindAgentQuery;
-
-    fn create(
+    pub fn create(
         pool: &DbPool,
         #[allow(unused_variables)] uuid: &uuid::Uuid,
-        payload: &Self::CreatePayload,
-    ) -> QueryResult<Self::Output> {
+        payload: &CreateAgentPayload,
+    ) -> QueryResult<Agent> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         diesel::insert_into(agents::table)
@@ -109,12 +100,12 @@ impl Crud for Agent {
             .get_result(conn)
     }
 
-    fn find_many(
+    pub fn find_many(
         pool: &DbPool,
         #[allow(unused_variables)] user_id: &Option<uuid::Uuid>,
         #[allow(unused_variables)] role: &Option<AgentRole>,
-        find_queries: &Self::FindManyParam,
-    ) -> QueryResult<Vec<Self::FindManyOutput>> {
+        find_queries: &FindAgentQuery,
+    ) -> QueryResult<Vec<Agent>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         let mut query = agents::table
@@ -150,11 +141,11 @@ impl Crud for Agent {
         query.get_results(conn)
     }
 
-    fn count_find_many_rows(
+    pub fn count_find_many_rows(
         pool: &DbPool,
         #[allow(unused_variables)] user_id: &Option<uuid::Uuid>,
         #[allow(unused_variables)] role: &Option<AgentRole>,
-        find_queries: &Self::FindManyParam,
+        find_queries: &FindAgentQuery,
     ) -> QueryResult<i64> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 

@@ -1,7 +1,6 @@
 use super::model::Agent;
 use super::AgentRole;
 use crate::middleware::{JsonFindResponse, Session};
-use crate::traits::Crud;
 use crate::{
     db::DbPool,
     middleware::{AxumResponse, JsonResponse},

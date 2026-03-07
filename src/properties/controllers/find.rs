@@ -1,7 +1,6 @@
 use crate::{
     agents::AgentRole,
     properties::enumerates::{PurchaseStatus, SoldStatus},
-    traits::Crud,
 };
 use axum::{
     extract::{Path, Query, State},
