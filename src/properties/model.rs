@@ -12,7 +12,6 @@ use crate::{
     agents::AgentRole,
     db::DbPool,
     schema::{agents, developers, properties},
-    traits::Crud,
 };
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, PgJsonbExpressionMethods,
@@ -261,24 +260,12 @@ impl Property {
             .order(properties::site_path.asc())
             .get_results(conn)
     }
-}
 
-diesel::define_sql_function! {
-    fn similarity(column: diesel::sql_types::Text, keyword: diesel::sql_types::Text) -> diesel::sql_types::Float
-}
-
-impl Crud for Property {
-    type Output = Self;
-    type SchemaTable = properties::table;
-    type CreatePayload = CreateUpdatePropertySqlPayload;
-    type FindManyOutput = PropertyWithRelation;
-    type FindManyParam = FindPropertyQuery;
-
-    fn create(
+    pub fn create(
         pool: &DbPool,
         uuid: &uuid::Uuid,
-        payload: &Self::CreatePayload,
-    ) -> QueryResult<Self::Output> {
+        payload: &CreateUpdatePropertySqlPayload,
+    ) -> QueryResult<Property> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         diesel::insert_into(properties::table)
@@ -286,12 +273,12 @@ impl Crud for Property {
             .get_result(conn)
     }
 
-    fn find_many(
+    pub fn find_many(
         pool: &DbPool,
         user_id: &Option<uuid::Uuid>,
         role: &Option<AgentRole>,
-        query: &Self::FindManyParam,
-    ) -> QueryResult<Vec<Self::FindManyOutput>> {
+        query: &FindPropertyQuery,
+    ) -> QueryResult<Vec<PropertyWithRelation>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         let mut property_query = match role {
@@ -414,7 +401,10 @@ impl Crud for Property {
                     property_query = property_query.order_by(properties::price.desc())
                 }
             },
-            None => property_query = property_query.order_by(properties::id.desc()),
+            None => match &query.s {
+                Some(_) => {}
+                None => property_query = property_query.order_by(properties::id.desc()),
+            },
         }
 
         property_query
@@ -428,11 +418,11 @@ impl Crud for Property {
             .get_results::<PropertyWithRelation>(conn)
     }
 
-    fn count_find_many_rows(
+    pub fn count_find_many_rows(
         pool: &DbPool,
         user_id: &Option<uuid::Uuid>,
         role: &Option<AgentRole>,
-        query: &Self::FindManyParam,
+        query: &FindPropertyQuery,
     ) -> QueryResult<i64> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
@@ -521,4 +511,8 @@ impl Crud for Property {
 
         property_query.count().get_result(conn)
     }
+}
+
+diesel::define_sql_function! {
+    fn similarity(column: diesel::sql_types::Text, keyword: diesel::sql_types::Text) -> diesel::sql_types::Float
 }

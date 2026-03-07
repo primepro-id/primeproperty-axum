@@ -5,7 +5,7 @@ use diesel::{
 };
 use serde::Serialize;
 
-use crate::{agents::AgentRole, db::DbPool, schema::leads, traits::Crud};
+use crate::{agents::AgentRole, db::DbPool, schema::leads};
 
 #[derive(Serialize, Queryable)]
 pub struct Lead {
@@ -29,20 +29,12 @@ impl Lead {
             .set(leads::is_deleted.eq(true))
             .get_result(conn)
     }
-}
 
-impl Crud for Lead {
-    type Output = Self;
-    type SchemaTable = leads::table;
-    type CreatePayload = CreateLeadPayload;
-    type FindManyOutput = Self;
-    type FindManyParam = FindLeadQueryParam;
-
-    fn create(
+    pub fn create(
         pool: &DbPool,
         #[allow(unused_variables)] uuid: &uuid::Uuid,
-        payload: &Self::CreatePayload,
-    ) -> QueryResult<Self::Output> {
+        payload: &CreateLeadPayload,
+    ) -> QueryResult<Lead> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         diesel::insert_into(leads::table)
@@ -50,12 +42,12 @@ impl Crud for Lead {
             .get_result(conn)
     }
 
-    fn find_many(
+    pub fn find_many(
         pool: &DbPool,
         user_id_option: &Option<uuid::Uuid>,
         role_option: &Option<crate::agents::AgentRole>,
-        query_params: &Self::FindManyParam,
-    ) -> QueryResult<Vec<Self::FindManyOutput>> {
+        query_params: &FindLeadQueryParam,
+    ) -> QueryResult<Vec<Lead>> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         let mut lead_query = match (user_id_option, role_option) {
@@ -89,11 +81,11 @@ impl Crud for Lead {
             .get_results(conn)
     }
 
-    fn count_find_many_rows(
+    pub fn count_find_many_rows(
         pool: &DbPool,
         user_id_option: &Option<uuid::Uuid>,
         role_option: &Option<crate::agents::AgentRole>,
-        query_params: &Self::FindManyParam,
+        query_params: &FindLeadQueryParam,
     ) -> QueryResult<i64> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
