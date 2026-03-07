@@ -401,7 +401,10 @@ impl Property {
                     property_query = property_query.order_by(properties::price.desc())
                 }
             },
-            None => property_query = property_query.order_by(properties::id.desc()),
+            None => match &query.s {
+                Some(_) => {}
+                None => property_query = property_query.order_by(properties::id.desc()),
+            },
         }
 
         property_query
