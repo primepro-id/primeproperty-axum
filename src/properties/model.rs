@@ -473,6 +473,11 @@ impl Property {
                 property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
         }
 
+        if let Some(street_query) = &query.street {
+            property_query =
+                property_query.filter(properties::street.eq(street_query.to_lowercase()));
+        }
+
         if let Some(is_popular) = &query.is_popular {
             let filter_json = serde_json::json!({ "is_popular": is_popular});
             property_query = property_query.filter(properties::configurations.contains(filter_json))
