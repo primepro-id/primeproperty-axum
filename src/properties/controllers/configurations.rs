@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Configurations {
-    is_popular: bool,
+    is_popular: Option<bool>,
+    is_njop_price: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
