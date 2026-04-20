@@ -380,6 +380,16 @@ impl Property {
             property_query = property_query.filter(properties::bank_id.eq(bank_id));
         }
 
+        if let Some(ids) = &query.ids {
+            let id_list: Vec<i32> = ids
+                .split(",")
+                .filter_map(|id| id.trim().parse::<i32>().ok())
+                .collect();
+            if id_list.len() > 0 {
+                property_query = property_query.filter(properties::id.eq_any(id_list));
+            }
+        }
+
         if let Some(limit) = &query.limit {
             match &query.page {
                 Some(page) => {
