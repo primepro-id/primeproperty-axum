@@ -1,4 +1,11 @@
 use crate::{
+    agents::Agent,
+    db::DbPool,
+    developers::Developer,
+    middleware::{AxumResponse, JsonFindResponse, JsonResponse, Session},
+    properties::model::Property,
+};
+use crate::{
     agents::AgentRole,
     properties::enumerates::{PurchaseStatus, SoldStatus},
 };
@@ -8,20 +15,11 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    agents::Agent,
-    db::DbPool,
-    developers::Developer,
-    middleware::{AxumResponse, JsonFindResponse, JsonResponse, Session},
-    properties::model::Property,
-};
-
 #[derive(Deserialize, Debug)]
 pub enum FindPropertySort {
     LowestPrice,
     HighestPrice,
 }
-
 #[derive(Deserialize, Default, Debug)]
 pub struct FindPropertyQuery {
     pub s: Option<String>,
@@ -38,6 +36,7 @@ pub struct FindPropertyQuery {
     pub sort: Option<FindPropertySort>,
     pub developer_id: Option<i32>,
     pub bank_id: Option<i32>,
+    pub ids: Option<String>,
 }
 
 pub(crate) type PropertyWithRelation = (Property, Agent, Option<Developer>);
