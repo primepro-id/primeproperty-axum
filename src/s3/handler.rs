@@ -11,7 +11,6 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
         // 1. EXTRACT METADATA FOR VALIDATION
         let content_type = field.content_type().unwrap_or("").to_string();
         let file_name = field.file_name().unwrap_or("").to_string().to_lowercase();
-        let name = field.name().unwrap_or("").to_string().to_lowercase();
 
         // 2. RUN CONTENT-TYPE VALIDATION
         // Valid MIME types: image/png, image/jpeg, image/webp
@@ -42,7 +41,7 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
             "jpg"
         };
         let bytes = field.bytes().await.unwrap();
-        let file_upload = S3Image::upload(bytes, &content_type, &name, extension).await;
+        let file_upload = S3Image::upload(bytes, &content_type, &file_name, extension).await;
         match file_upload {
             Ok(image) => {
                 uploaded_files.push(image);
