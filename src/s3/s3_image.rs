@@ -13,11 +13,10 @@ pub struct S3Image {
 }
 impl S3Image {
     fn new(key: &str) -> Self {
-        let endpoint = std::env::var("S3_ENDPOINT").expect("Missing S3_ENDPOINT");
         let bucket = std::env::var("S3_BUCKET").expect("Missing S3_BUCKET");
         Self {
             is_cover: false,
-            path: format!("{endpoint}/{bucket}/{key}"),
+            path: format!("/{bucket}/{key}"),
             english_label: "".to_string(),
             indonesian_label: "".to_string(),
         }
