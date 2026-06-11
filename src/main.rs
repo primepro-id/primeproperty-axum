@@ -5,6 +5,7 @@ mod developers;
 mod leads;
 mod middleware;
 mod properties;
+mod s3;
 mod schema;
 
 use crate::db::build_db_pool;
@@ -63,6 +64,7 @@ async fn main() {
         .nest("/developers", developers::developers_routes(pool.clone()))
         .nest("/leads", leads::lead_routes())
         .nest("/properties", properties::property_routes())
+        .nest("/s3", s3::routes())
         .with_state(pool)
         .layer(from_fn(middleware::Session::middleware))
         .layer(cors)
