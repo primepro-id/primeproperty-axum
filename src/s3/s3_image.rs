@@ -12,20 +12,19 @@ pub struct S3Image {
     indonesian_label: String,
 }
 impl S3Image {
-    fn new(label: &str, key: &str) -> Self {
+    fn new(key: &str) -> Self {
         let endpoint = std::env::var("S3_ENDPOINT").expect("Missing S3_ENDPOINT");
         let bucket = std::env::var("S3_BUCKET").expect("Missing S3_BUCKET");
         Self {
             is_cover: false,
             path: format!("{endpoint}/{bucket}/{key}"),
-            english_label: label.to_string(),
-            indonesian_label: label.to_string(),
+            english_label: "".to_string(),
+            indonesian_label: "".to_string(),
         }
     }
     pub async fn upload(
         bytes: Bytes,
         content_type: &str,
-        label: &str,
         extension: &str,
     ) -> Result<Self, S3Error> {
         let unique_id = cuid::cuid2();
@@ -33,7 +32,7 @@ impl S3Image {
         let byte_stream = ByteStream::from(bytes);
         let file_upload = S3::upload_file(&s3_key, byte_stream, &content_type).await;
         match file_upload {
-            Ok(_) => Ok(Self::new(&label, &s3_key)),
+            Ok(_) => Ok(Self::new(&s3_key)),
             Err(err) => Err(err),
         }
     }

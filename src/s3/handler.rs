@@ -41,7 +41,7 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
             "jpg"
         };
         let bytes = field.bytes().await.unwrap();
-        let file_upload = S3Image::upload(bytes, &content_type, &file_name, extension).await;
+        let file_upload = S3Image::upload(bytes, &content_type, extension).await;
         match file_upload {
             Ok(image) => {
                 uploaded_files.push(image);
