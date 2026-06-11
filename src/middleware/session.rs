@@ -98,6 +98,7 @@ impl Session {
         let method = req.method();
         let path = req.uri().path();
 
+        println!("PATH: {}", path);
         match method {
             &Method::GET => {
                 if path == "/agents" || path == "/leads" {
@@ -113,6 +114,7 @@ impl Session {
 
                 Ok(next.run(req).await)
             }
+            &Method::POST if path == "/s3/images" => return Ok(next.run(req).await),
             &Method::POST if path == "/leads" => return Ok(next.run(req).await),
             _ => Self::check_session(req, next).await,
         }

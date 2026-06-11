@@ -1,12 +1,16 @@
 [package]
-name = "inception-axum"
+name = "primeproperty-axum"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.8.7"
+aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.134.0"
+axum = {version = "0.8.7", features = ["multipart"]}
 bigdecimal = { version = "0.4.9", features = ["serde"] }
+bytes = "1.11.1"
 chrono = {version = "0.4.42", features = ["serde"]}
+cuid =  { version = "2.0.4", default-features = false, features = ["v2"] }
 diesel = { version = "2.3.4", features = ["postgres", "r2d2", "uuid", "chrono", "numeric", "serde_json"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "9.3.1"

@@ -2,6 +2,7 @@ use crate::agents::{Agent, AgentRole};
 use crate::middleware::Session;
 use crate::properties::enumerates::{Currency, RentTime, SoldChannel, SoldStatus};
 use crate::properties::model::Property;
+use crate::s3::S3Image;
 use crate::schema;
 use crate::{
     db::DbPool,
@@ -15,14 +16,6 @@ use axum::{
 };
 use diesel::prelude::{AsChangeset, Insertable};
 use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize, Serialize)]
-pub(crate) struct Images {
-    is_cover: bool,
-    path: String,
-    english_label: String,
-    indonesian_label: String,
-}
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Measurements {
@@ -55,7 +48,7 @@ pub(crate) struct CreateUpdatePropertyApiPayload {
     street: String,
     gmap_iframe: Option<String>,
     price: i64,
-    images: Vec<Images>,
+    images: Vec<S3Image>,
     purchase_status: PurchaseStatus,
     sold_status: Option<SoldStatus>,
     measurements: Measurements,
