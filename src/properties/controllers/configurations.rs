@@ -1,14 +1,10 @@
 use crate::{
-    agents::{Agent, AgentRole},
     db::DbPool,
-    middleware::{AxumResponse, JsonResponse, Session},
+    middleware::{AxumResponse, JsonResponse},
     properties::Property,
     schema,
 };
-use axum::{
-    extract::{Json, Path, State},
-    http::HeaderMap,
-};
+use axum::extract::{Json, Path, State};
 use diesel::prelude::AsChangeset;
 use serde::{Deserialize, Serialize};
 
@@ -39,29 +35,13 @@ impl UpdateConfigurationsPayload {
 
 pub async fn update_configurations(
     State(pool): State<DbPool>,
-    headers: HeaderMap,
     Path(id): Path<i32>,
     Json(payload): Json<UpdateConfigurationsPayload>,
 ) -> AxumResponse<Property> {
-    let user_id = Session::extract_session_user_id(&headers);
+    let sql_payload = &payload.to_sql_payload();
 
-    let is_admin = match Agent::find_by_user_id(&pool, &user_id) {
-        Ok(agent) => match agent.role {
-            AgentRole::Admin => true,
-            _ => false,
-        },
-        Err(_) => false,
-    };
-
-    match is_admin {
-        true => {
-            let sql_payload = &payload.to_sql_payload();
-
-            match Property::update_configurations(&pool, &id, sql_payload) {
-                Ok(property) => JsonResponse::send(200, Some(property), None),
-                Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
-            }
-        }
-        false => JsonResponse::send(403, None, None),
+    match Property::update_configurations(&pool, &id, sql_payload) {
+        Ok(property) => JsonResponse::send(200, Some(property), None),
+        Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
     }
 }
