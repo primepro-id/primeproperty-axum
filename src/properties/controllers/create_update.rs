@@ -149,7 +149,10 @@ pub async fn create_property(
 
     match Property::create(&pool, &user_id, &sql_payload) {
         Ok(property) => JsonResponse::send(201, Some(property), None),
-        Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
+        Err(err) => {
+            println!("[create_property] ERROR {:?}", err);
+            JsonResponse::send(500, None, Some(err.to_string()))
+        }
     }
 }
 

@@ -47,6 +47,7 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
                 uploaded_files.push(image);
             }
             Err(err) => {
+                println!("[upload_images] ERROR {:?}", err);
                 return JsonResponse::send(500, None, Some(err.to_string()));
             }
         }
