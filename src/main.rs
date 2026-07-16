@@ -10,11 +10,10 @@ mod s3;
 mod schema;
 
 use crate::db::build_db_pool;
-use axum::http::HeaderValue;
+use crate::envs::Envs;
+use axum::http::{HeaderValue, Method};
 use axum::{middleware::from_fn, Router};
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use std::env;
-use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
@@ -22,33 +21,7 @@ use tower_http::trace::TraceLayer;
 async fn main() {
     dotenvy::dotenv().ok();
 
-    let pool = build_db_pool();
-    let origins = [
-        "https://primeproindonesia.com"
-            .parse::<HeaderValue>()
-            .unwrap(),
-        "https://agent.primeproindonesia.com"
-            .parse::<HeaderValue>()
-            .unwrap(),
-    ];
-
-    let app_env = env::var("APP_ENV");
-    let cors = match app_env {
-        Ok(env) if env == "production" => {
-            CorsLayer::new()
-                .allow_origin(origins) // Pass the list of origins
-                .allow_methods(Any) // Allow any HTTP method (GET, POST, etc.)
-                .allow_headers(Any) // Allow any headers in the request
-        }
-        _ => CorsLayer::permissive(),
-    };
-
-    let tracing_filter = tracing_subscriber::EnvFilter::new("tower_http::trace::make_span=debug,tower_http::trace::on_response=debug,tower_http::trace::on_request=debug");
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_filter)
-        .init();
-
-    let sentry_url = env::var("SENTRY_URL").expect("Missing SENTRY_URL");
+    let sentry_url = Envs::sentry_url();
     let _guard = sentry::init((
         sentry_url,
         sentry::ClientOptions {
@@ -58,7 +31,42 @@ async fn main() {
         },
     ));
 
+    let app_env = Envs::app_env();
+    let origins = [
+        "https://primeproindonesia.com"
+            .parse::<HeaderValue>()
+            .unwrap(),
+        "https://agent.primeproindonesia.com"
+            .parse::<HeaderValue>()
+            .unwrap(),
+    ];
+    let cors = match app_env.as_str() {
+        "production" => CorsLayer::new()
+            .allow_origin(origins)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PATCH,
+                Method::PUT,
+                Method::DELETE,
+            ])
+            .allow_headers([
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::AUTHORIZATION,
+            ]),
+        _ => CorsLayer::permissive(),
+    };
+
+    let tracing_filter = tracing_subscriber::EnvFilter::new(
+        "tower_http::trace::make_span=debug,tower_http::trace::on_response=debug,tower_http::trace::on_request=debug",
+    );
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_filter)
+        .with_max_level(tracing::Level::ERROR)
+        .init();
+
     // build our application with a route
+    let pool = build_db_pool();
     let app = Router::new()
         .nest("/agents", agents::agent_routes(pool.clone()))
         .nest("/banks", banks::banks_routes(pool.clone()))
@@ -74,17 +82,15 @@ async fn main() {
         .layer(SentryHttpLayer::new().enable_transaction());
 
     // run our app with hyper, listening globally on env port
-    let host_addr = env::var("HOST_ADDRESS").expect("Missing HOST_ADDRESS");
+    let host_addr = Envs::host_address();
     let listener = match tokio::net::TcpListener::bind(&host_addr).await {
-        Ok(tcp) => tcp,
-        Err(err) => {
-            println!("Failed to listen to {}: {}", host_addr, err);
-            return;
-        }
+        Ok(listen) => listen,
+        Err(err) => panic!("Failed to bind address: {}", err),
     };
-    println!("Server started at {}", host_addr);
+
+    println!("Server started at {}", &host_addr);
     match axum::serve(listener, app).await {
         Ok(_) => {}
-        Err(err) => println!("Server failed to start: {}", err),
+        Err(err) => panic!("Failed to start server: {}", err),
     }
 }
