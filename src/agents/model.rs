@@ -10,10 +10,10 @@ use super::agent_role::AgentRole;
 use crate::db::{DbPool, DbPoolExt};
 use crate::schema::agents;
 
-#[derive(Debug, Serialize, Queryable)]
+#[derive(Debug, Serialize, Queryable, Clone)]
 pub struct Agent {
     id: uuid::Uuid,
-    supertokens_user_id: Option<String>,
+    pub supertokens_user_id: Option<String>,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
     fullname: String,

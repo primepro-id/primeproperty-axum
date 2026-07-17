@@ -4,4 +4,4 @@ mod model;
 
 pub use agent_role::AgentRole;
 pub use controller::routes;
-// pub use model::Agent;
+pub use model::Agent;

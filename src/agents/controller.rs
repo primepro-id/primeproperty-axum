@@ -6,7 +6,7 @@ use super::model::Agent;
 use crate::{
     db::DbPool,
     middleware::{AxumResponse, JsonResponse},
-    supertokens::SuperTokens,
+    supertokens::{CreateSessionResponse, SuperTokens},
 };
 use axum::{
     extract::{Json, State},
@@ -183,7 +183,7 @@ struct SigninPayload {
 async fn signin(
     State(pool): State<DbPool>,
     Json(payload): Json<SigninPayload>,
-) -> AxumResponse<Agent> {
+) -> AxumResponse<CreateSessionResponse> {
     let tokens = match SuperTokens::signin(&payload.email, &payload.password).await {
         Ok(s) => s,
         Err(e) => {
@@ -199,13 +199,23 @@ async fn signin(
         );
     }
 
-    match Agent::find_by_supertokens_user_id(&pool, &tokens.recipeUserId.unwrap()) {
-        Ok(agent) => JsonResponse::send(StatusCode::OK, Some(agent), None),
-        Err(err) => JsonResponse::send(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            None,
-            Some(err.to_string()),
-        ),
+    let agent = match Agent::find_by_supertokens_user_id(
+        &pool,
+        &tokens.recipeUserId.clone().unwrap_or_default(),
+    ) {
+        Ok(a) => a,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            )
+        }
+    };
+
+    match SuperTokens::create_session(&tokens.recipeUserId.unwrap_or_default(), &agent).await {
+        Ok(s) => JsonResponse::send(StatusCode::OK, Some(s), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
     }
 }
 
