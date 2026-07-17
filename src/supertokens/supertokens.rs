@@ -22,26 +22,29 @@ impl SuperTokens {
         payload: &T,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let url = format!("{}{}", Envs::supertokens_connection_uri(), path);
+        let api_key = Envs::supertokens_api_key();
 
         reqwest::Client::new()
             .post(&url)
+            .header("Content-Type", "application/json")
+            .header("api-key", api_key)
             .json(&payload)
             .send()
             .await
     }
 
     const SIGNIN_PATH: &str = "/recipe/signin";
-    async fn signin(email: &str) -> Result<SigninResponse, reqwest::Error> {
+    pub async fn signin(email: &str, password: &str) -> Result<SigninResponse, reqwest::Error> {
         let req = SigninRequest {
             email: email.to_string(),
-            password: uuid::Uuid::new_v4().to_string(),
+            password: password.to_string(),
         };
         let res = match Self::post(Self::SIGNIN_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };
 
-        res.json().await
+        res.json::<SigninResponse>().await
     }
 
     const SIGNUP_PATH: &str = "/recipe/signup";

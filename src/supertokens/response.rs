@@ -46,13 +46,13 @@ use serde::Deserialize;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
-pub(super) struct SigninResponse {
-    status: String,
-    loginMethods: Vec<LoginMethod>,
-    recipeUserId: String,
+pub struct SigninResponse {
+    pub status: String,
+    pub loginMethods: Option<Vec<LoginMethod>>,
+    pub recipeUserId: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub(super) struct LoginMethod {
-    verified: bool,
+pub struct LoginMethod {
+    pub verified: bool,
 }

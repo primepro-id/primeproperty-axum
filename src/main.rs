@@ -1,13 +1,14 @@
 mod agents;
-mod banks;
+// mod banks;
 mod db;
-mod developers;
+// mod developers;
 mod envs;
-mod leads;
+// mod leads;
 mod middleware;
-mod properties;
-mod s3;
+// mod properties;
+// mod s3;
 mod schema;
+mod supertokens;
 
 use crate::db::build_db_pool;
 use crate::envs::Envs;
@@ -68,14 +69,14 @@ async fn main() {
     // build our application with a route
     let pool = build_db_pool();
     let app = Router::new()
-        .nest("/agents", agents::agent_routes(pool.clone()))
-        .nest("/banks", banks::banks_routes(pool.clone()))
-        .nest("/developers", developers::developers_routes(pool.clone()))
-        .nest("/leads", leads::lead_routes())
-        .nest("/properties", properties::property_routes())
-        .nest("/s3", s3::routes())
+        .nest("/agents", agents::routes())
+        // .nest("/banks", banks::banks_routes(pool.clone()))
+        // .nest("/developers", developers::developers_routes(pool.clone()))
+        // .nest("/leads", leads::lead_routes())
+        // .nest("/properties", properties::property_routes())
+        // .nest("/s3", s3::routes())
         .with_state(pool)
-        .layer(from_fn(middleware::Session::middleware))
+        // .layer(from_fn(middleware::Session::middleware))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .layer(NewSentryLayer::new_from_top())
