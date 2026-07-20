@@ -1,6 +1,6 @@
 use super::{
-    request::{CreateSessionRequest, SigninRequest},
-    response::{CreateSessionResponse, SigninResponse},
+    request::{CreatePasswordResetTokenRequest, CreateSessionRequest, SigninRequest},
+    response::{CreatePasswordResetTokenResponse, CreateSessionResponse, SigninResponse},
 };
 use crate::{agents::Agent, envs::Envs};
 use serde::Serialize;
@@ -57,6 +57,23 @@ impl SuperTokens {
     ) -> Result<CreateSessionResponse, reqwest::Error> {
         let req = CreateSessionRequest::new(supertokens_id, agent);
         let res = match Self::post(Self::CREATE_SESSION_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    const CREATE_PASSWORD_RESET_TOKEN_PATH: &str = "/recipe/user/password/reset/token";
+    pub async fn create_password_reset_token(
+        supertokens_user_id: &str,
+        email: &String,
+    ) -> Result<CreatePasswordResetTokenResponse, reqwest::Error> {
+        let req = CreatePasswordResetTokenRequest {
+            userId: supertokens_user_id.to_string(),
+            email: email.clone(),
+        };
+        let res = match Self::post(Self::CREATE_PASSWORD_RESET_TOKEN_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };

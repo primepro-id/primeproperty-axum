@@ -6,7 +6,7 @@ use super::model::Agent;
 use crate::{
     db::DbPool,
     middleware::{AxumResponse, JsonResponse},
-    supertokens::{CreateSessionResponse, SuperTokens},
+    supertokens::{CreatePasswordResetTokenResponse, CreateSessionResponse, SuperTokens},
 };
 use axum::{
     extract::{Json, State},
@@ -219,8 +219,35 @@ async fn signin(
     }
 }
 
+#[derive(Deserialize)]
+struct PasswordResetTokenPayload {
+    email: String,
+}
+
+async fn create_password_reset_token(
+    State(pool): State<DbPool>,
+    Json(payload): Json<PasswordResetTokenPayload>,
+) -> AxumResponse<CreatePasswordResetTokenResponse> {
+    let agent = match Agent::find_by_email(&pool, &payload.email) {
+        Ok(a) => a,
+        Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
+    };
+
+    match SuperTokens::create_password_reset_token(
+        &agent.supertokens_user_id.unwrap_or_default(),
+        &payload.email,
+    )
+    .await
+    {
+        Ok(t) => JsonResponse::send(StatusCode::OK, Some(t), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
-    Router::new().route("/signin", post(signin))
+    Router::new()
+        .route("/signin", post(signin))
+        .route("/password-reset-token", post(create_password_reset_token))
     // .route("/", post(create_agent))
     // .route("/", get(find_agents))
     // .route("/{id}", delete(delete_agent))

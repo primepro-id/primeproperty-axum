@@ -29,3 +29,10 @@ impl CreateSessionRequest {
         }
     }
 }
+
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub(super) struct CreatePasswordResetTokenRequest {
+    pub(super) userId: String,
+    pub(super) email: String,
+}

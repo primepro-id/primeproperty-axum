@@ -88,3 +88,16 @@ pub struct CreateSessionResponse {
 pub struct AccessToken {
     token: String,
 }
+
+// # Create Password Reset Token Response
+// {
+//   "status": "OK",
+//   "token": "ZTRiOTBjNz...jI5MTZlODkxw"
+// }
+//
+#[allow(non_snake_case)]
+#[derive(Deserialize, Serialize)]
+pub struct CreatePasswordResetTokenResponse {
+    pub status: String,
+    pub token: Option<String>,
+}

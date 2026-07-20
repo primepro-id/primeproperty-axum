@@ -42,6 +42,17 @@ impl Agent {
             .get_result(conn)
     }
 
+    pub(super) fn find_by_email(pool: &DbPool, email: &str) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        agents::table
+            .filter(agents::email.eq(email))
+            .get_result(conn)
+    }
+
     // pub fn find_by_user_id(pool: &DbPool, id: &uuid::Uuid) -> QueryResult<Self> {
     //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
