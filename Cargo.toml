@@ -14,6 +14,7 @@ cuid =  { version = "2.0.4", default-features = false, features = ["v2"] }
 diesel = { version = "2.3.4", features = ["postgres", "r2d2", "uuid", "chrono", "numeric", "serde_json"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "9.3.1"
+lettre = "0.11.22"
 openssl = {version = "0.10.75", features = ["vendored"]}
 reqwest = {version = "0.12.24", features = ["json"]}
 sentry = "0.46.0"

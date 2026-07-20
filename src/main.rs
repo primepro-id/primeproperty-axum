@@ -4,6 +4,7 @@ mod db;
 // mod developers;
 mod envs;
 // mod leads;
+mod mail;
 mod middleware;
 // mod properties;
 // mod s3;

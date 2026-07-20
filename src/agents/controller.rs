@@ -5,6 +5,8 @@
 use super::model::Agent;
 use crate::{
     db::DbPool,
+    envs::Envs,
+    mail::Mail,
     middleware::{AxumResponse, JsonResponse},
     supertokens::{CreatePasswordResetTokenResponse, CreateSessionResponse, SuperTokens},
 };
@@ -227,20 +229,39 @@ struct PasswordResetTokenPayload {
 async fn create_password_reset_token(
     State(pool): State<DbPool>,
     Json(payload): Json<PasswordResetTokenPayload>,
-) -> AxumResponse<CreatePasswordResetTokenResponse> {
+) -> AxumResponse<String> {
     let agent = match Agent::find_by_email(&pool, &payload.email) {
         Ok(a) => a,
         Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
     };
 
-    match SuperTokens::create_password_reset_token(
+    let token = match SuperTokens::create_password_reset_token(
         &agent.supertokens_user_id.unwrap_or_default(),
         &payload.email,
     )
     .await
     {
-        Ok(t) => JsonResponse::send(StatusCode::OK, Some(t), None),
-        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+        Ok(t) => t,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    if token.status != "OK" {
+        return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(token.status));
+    }
+
+    let frontend_url = Envs::frontend_url();
+    let body = format!(
+        "Click here to reset your reset password: {}/auth/reset-password?token={}",
+        frontend_url,
+        token.token.unwrap_or_default()
+    );
+    match Mail::send(&payload.email, &payload.email, "Reset Password", &body) {
+        Ok(_) => JsonResponse::send(StatusCode::OK, Some(token.status), None),
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
     }
 }
 
