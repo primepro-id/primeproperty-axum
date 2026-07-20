@@ -5,19 +5,7 @@ use crate::{
 };
 use axum::{extract::Multipart, http::HeaderMap, routing::post, Router};
 
-async fn upload_images(headers: HeaderMap, mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
-    let api_key_option = headers.get("x-api-key");
-
-    let api_key = match api_key_option {
-        Some(key) => key.to_str().unwrap_or(""),
-        None => return JsonResponse::send(401, None, None),
-    };
-
-    let leads_api_key = std::env::var("API_KEY_LEADS").expect("Missing API_KEY_LEADS");
-
-    if api_key != leads_api_key {
-        return JsonResponse::send(401, None, None);
-    }
+async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
     let mut uploaded_files: Vec<S3Image> = Vec::new();
     while let Ok(Some(field)) = multipart.next_field().await {
         // 1. EXTRACT METADATA FOR VALIDATION
