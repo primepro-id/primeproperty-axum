@@ -114,6 +114,7 @@ impl Session {
                 Ok(next.run(req).await)
             }
             &Method::POST if path == "/leads" => return Ok(next.run(req).await),
+            &Method::POST if path == "/s3/images" => return Ok(next.run(req).await),
             _ => Self::check_session(req, next).await,
         }
     }
