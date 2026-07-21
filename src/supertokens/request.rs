@@ -36,3 +36,8 @@ pub(super) struct CreatePasswordResetTokenRequest {
     pub(super) userId: String,
     pub(super) email: String,
 }
+
+#[derive(Serialize)]
+pub struct ConsumePasswordResetTokenRequest {
+    pub(super) token: String,
+}

@@ -8,7 +8,7 @@ use crate::{
     envs::Envs,
     mail::Mail,
     middleware::{AxumResponse, JsonResponse},
-    supertokens::{CreatePasswordResetTokenResponse, CreateSessionResponse, SuperTokens},
+    supertokens::{ConsumePasswordResetTokenResponse, CreateSessionResponse, SuperTokens},
 };
 use axum::{
     extract::{Json, State},
@@ -265,10 +265,29 @@ async fn create_password_reset_token(
     }
 }
 
+#[derive(Deserialize)]
+struct PasswordResetPayload {
+    token: String,
+    password: String,
+}
+
+async fn password_reset(
+    State(pool): State<DbPool>,
+    Json(payload): Json<PasswordResetPayload>,
+) -> AxumResponse<ConsumePasswordResetTokenResponse> {
+    match SuperTokens::consume_password_reset_token(&payload.token).await {
+        Ok(token) => return JsonResponse::send(StatusCode::OK, Some(token), None),
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     Router::new()
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
+        .route("/password-reset", post(password_reset))
     // .route("/", post(create_agent))
     // .route("/", get(find_agents))
     // .route("/{id}", delete(delete_agent))
