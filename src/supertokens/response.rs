@@ -108,10 +108,16 @@ pub struct CreatePasswordResetTokenResponse {
 //   "userId": "fa7a0841-b533-4478-95533-0fde890c3483",
 //   "email": "johndoe@gmail.com"
 // }
-#[allow(non_snake_case)]
-#[derive(Deserialize, Serialize)]
+#[allow(non_snake_case, dead_code)]
+#[derive(Deserialize)]
 pub struct ConsumePasswordResetTokenResponse {
     pub status: String,
     pub userId: Option<String>,
     email: Option<String>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Deserialize, Serialize)]
+pub struct UpdateUserResponse {
+    pub status: String,
 }

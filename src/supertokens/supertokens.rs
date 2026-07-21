@@ -1,14 +1,14 @@
 use super::{
-    request::{CreatePasswordResetTokenRequest, CreateSessionRequest, SigninRequest},
-    response::{CreatePasswordResetTokenResponse, CreateSessionResponse, SigninResponse},
-};
-use crate::{
-    agents::Agent,
-    envs::Envs,
-    supertokens::{
-        request::ConsumePasswordResetTokenRequest, response::ConsumePasswordResetTokenResponse,
+    request::{
+        ConsumePasswordResetTokenRequest, CreatePasswordResetTokenRequest, CreateSessionRequest,
+        SigninRequest, UpdateUserPasswordRequest,
+    },
+    response::{
+        ConsumePasswordResetTokenResponse, CreatePasswordResetTokenResponse, CreateSessionResponse,
+        SigninResponse, UpdateUserResponse,
     },
 };
+use crate::{agents::Agent, envs::Envs};
 use serde::Serialize;
 
 pub struct SuperTokens;
@@ -35,6 +35,22 @@ impl SuperTokens {
 
         reqwest::Client::new()
             .post(&url)
+            .header("Content-Type", "application/json")
+            .header("api-key", api_key)
+            .json(&payload)
+            .send()
+            .await
+    }
+
+    async fn put<T: Serialize>(
+        path: &str,
+        payload: &T,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let url = format!("{}{}", Envs::supertokens_connection_uri(), path);
+        let api_key = Envs::supertokens_api_key();
+
+        reqwest::Client::new()
+            .put(&url)
             .header("Content-Type", "application/json")
             .header("api-key", api_key)
             .json(&payload)
@@ -95,6 +111,23 @@ impl SuperTokens {
             token: token.to_string(),
         };
         let res = match Self::post(Self::CONSUME_CREATE_PASSWORD_RESET_TOKEN, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    const USER_PATH: &str = "/recipe/user";
+    pub async fn update_user_password(
+        recipe_user_id: &str,
+        password: &str,
+    ) -> Result<UpdateUserResponse, reqwest::Error> {
+        let req = UpdateUserPasswordRequest {
+            recipeUserId: recipe_user_id.to_string(),
+            password: Some(password.to_string()),
+        };
+        let res = match Self::put(Self::USER_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };

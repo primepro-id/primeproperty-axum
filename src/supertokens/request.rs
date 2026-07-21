@@ -41,3 +41,10 @@ pub(super) struct CreatePasswordResetTokenRequest {
 pub struct ConsumePasswordResetTokenRequest {
     pub(super) token: String,
 }
+
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub struct UpdateUserPasswordRequest {
+    pub(super) recipeUserId: String,
+    pub(super) password: Option<String>,
+}

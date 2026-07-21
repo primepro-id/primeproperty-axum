@@ -8,7 +8,7 @@ use crate::{
     envs::Envs,
     mail::Mail,
     middleware::{AxumResponse, JsonResponse},
-    supertokens::{ConsumePasswordResetTokenResponse, CreateSessionResponse, SuperTokens},
+    supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse},
 };
 use axum::{
     extract::{Json, State},
@@ -20,7 +20,7 @@ use axum::{
 // use axum::routing::{delete, get, post, put};
 use axum::Router;
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 // use diesel::prelude::{AsChangeset, Insertable};
 // use reqwest::StatusCode;
 // use serde::Deserialize;
@@ -272,14 +272,27 @@ struct PasswordResetPayload {
 }
 
 async fn password_reset(
-    State(pool): State<DbPool>,
     Json(payload): Json<PasswordResetPayload>,
-) -> AxumResponse<ConsumePasswordResetTokenResponse> {
-    match SuperTokens::consume_password_reset_token(&payload.token).await {
-        Ok(token) => return JsonResponse::send(StatusCode::OK, Some(token), None),
+) -> AxumResponse<UpdateUserResponse> {
+    let token = match SuperTokens::consume_password_reset_token(&payload.token).await {
+        Ok(t) => t,
         Err(e) => {
             return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
         }
+    };
+
+    if token.status != "OK" {
+        let res = UpdateUserResponse {
+            status: token.status,
+        };
+        return JsonResponse::send(StatusCode::BAD_REQUEST, Some(res), None);
+    }
+
+    match SuperTokens::update_user_password(&token.userId.unwrap_or_default(), &payload.password)
+        .await
+    {
+        Ok(u) => JsonResponse::send(StatusCode::OK, Some(u), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
     }
 }
 
