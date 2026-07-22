@@ -32,6 +32,26 @@ impl CreateSessionRequest {
 
 #[allow(non_snake_case)]
 #[derive(Serialize)]
+pub(super) struct VerifySessionRequest {
+    accessToken: String,
+    enableAntiCsrf: bool,
+    doAntiCsrfCheck: bool,
+    checkDatabase: bool,
+}
+
+impl VerifySessionRequest {
+    pub(super) fn new(access_token: &str) -> Self {
+        Self {
+            accessToken: access_token.to_string(),
+            enableAntiCsrf: false,
+            doAntiCsrfCheck: false,
+            checkDatabase: false,
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[derive(Serialize)]
 pub(super) struct CreatePasswordResetTokenRequest {
     pub(super) userId: String,
     pub(super) email: String,

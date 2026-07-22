@@ -1,11 +1,11 @@
 use super::{
     request::{
         ConsumePasswordResetTokenRequest, CreatePasswordResetTokenRequest, CreateSessionRequest,
-        SigninRequest, UpdateUserPasswordRequest,
+        SigninRequest, UpdateUserPasswordRequest, VerifySessionRequest,
     },
     response::{
         ConsumePasswordResetTokenResponse, CreatePasswordResetTokenResponse, CreateSessionResponse,
-        SigninResponse, UpdateUserResponse,
+        SigninResponse, UpdateUserResponse, VerifySessionResponse,
     },
 };
 use crate::{agents::Agent, envs::Envs};
@@ -79,6 +79,19 @@ impl SuperTokens {
     ) -> Result<CreateSessionResponse, reqwest::Error> {
         let req = CreateSessionRequest::new(supertokens_id, agent);
         let res = match Self::post(Self::CREATE_SESSION_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    const VERIFY_SESSION_PATH: &str = "/recipe/session/verify";
+    pub async fn verify_session(
+        access_token: &str,
+    ) -> Result<VerifySessionResponse, reqwest::Error> {
+        let req = VerifySessionRequest::new(access_token);
+        let res = match Self::post(Self::VERIFY_SESSION_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };

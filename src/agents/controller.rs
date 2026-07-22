@@ -7,12 +7,13 @@ use crate::{
     db::DbPool,
     envs::Envs,
     mail::Mail,
-    middleware::{AxumResponse, JsonResponse},
+    middleware::{AxumResponse, JsonResponse, RequestMiddleware},
     schema,
     supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse},
 };
 use axum::{
     extract::{Json, State},
+    middleware::from_fn,
     routing::post,
 };
 // use axum::http::{HeaderMap, Method};
@@ -379,11 +380,16 @@ async fn create(
 }
 
 pub fn routes() -> Router<DbPool> {
-    Router::new()
+    let public_routes = Router::new()
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
-        .route("/password-reset", post(password_reset))
+        .route("/password-reset", post(password_reset));
+
+    let protected_routes = Router::new()
         .route("/", post(create))
+        .layer(from_fn(RequestMiddleware::check_session));
+
+    public_routes.merge(protected_routes)
     // .route("/", post(create_agent))
     // .route("/", get(find_agents))
     // .route("/{id}", delete(delete_agent))

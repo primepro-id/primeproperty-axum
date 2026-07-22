@@ -29,7 +29,7 @@ pub struct Agent {
 impl DbPoolExt for Agent {}
 
 impl Agent {
-    pub(super) fn find_by_supertokens_user_id(
+    pub fn find_by_supertokens_user_id(
         pool: &DbPool,
         supertokens_user_id: &str,
     ) -> QueryResult<Self> {

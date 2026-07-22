@@ -116,8 +116,31 @@ pub struct ConsumePasswordResetTokenResponse {
     email: Option<String>,
 }
 
-#[allow(non_snake_case)]
 #[derive(Deserialize, Serialize)]
 pub struct UpdateUserResponse {
+    pub status: String,
+}
+
+// # Verify Session Response
+// {
+//   "status": "OK",
+//   "session": {
+//     "handle": "68en6gd6-865b-4af6-ba00-96e5c153257d",
+//     "userId": "fa7a0841-b533-4478-95533-0fde890c3483",
+//     "userDataInJWT": {
+//       "test": 123
+//     },
+//     "tenantId": "customer1",
+//     "recipeUserId": "fa7a0841-b533-4478-95533-0fde890c3483"
+//   },
+//   "accessToken": {
+//     "token": "ZTRiOTBjNz...jI5MTZlODkxw",
+//     "expiry": 1637262633029,
+//     "createdTime": 1637262633029
+//   }
+// }
+
+#[derive(Deserialize)]
+pub struct VerifySessionResponse {
     pub status: String,
 }
