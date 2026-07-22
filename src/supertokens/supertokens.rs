@@ -135,17 +135,17 @@ impl SuperTokens {
         res.json().await
     }
 
-    // const SIGNUP_PATH: &str = "/recipe/signup";
-    // async fn signup(email: &str) -> Result<SigninResponse, reqwest::Error> {
-    //     let req = SigninRequest {
-    //         email: email.to_string(),
-    //         password: uuid::Uuid::new_v4().to_string(),
-    //     };
-    //     let res = match Self::post(Self::SIGNUP_PATH, &req).await {
-    //         Ok(r) => r,
-    //         Err(e) => return Err(e),
-    //     };
+    const SIGNUP_PATH: &str = "/recipe/signup";
+    pub async fn signup(email: &str) -> Result<SigninResponse, reqwest::Error> {
+        let req = SigninRequest {
+            email: email.to_string(),
+            password: uuid::Uuid::new_v4().to_string(),
+        };
+        let res = match Self::post(Self::SIGNUP_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
 
-    //     res.json().await
-    // }
+        res.json().await
+    }
 }

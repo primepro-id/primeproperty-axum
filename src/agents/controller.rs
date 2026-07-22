@@ -8,6 +8,7 @@ use crate::{
     envs::Envs,
     mail::Mail,
     middleware::{AxumResponse, JsonResponse},
+    schema,
     supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse},
 };
 use axum::{
@@ -19,6 +20,7 @@ use axum::{
 // use axum::response::Response;
 // use axum::routing::{delete, get, post, put};
 use axum::Router;
+use diesel::prelude::Insertable;
 use reqwest::StatusCode;
 use serde::Deserialize;
 // use diesel::prelude::{AsChangeset, Insertable};
@@ -252,11 +254,13 @@ async fn create_password_reset_token(
     }
 
     let frontend_url = Envs::frontend_url();
-    let body = format!(
-        "Click here to reset your reset password: {}/auth/reset-password?token={}",
+    let reset_url = format!(
+        "{}/auth/reset-password?token={}",
         frontend_url,
         token.token.unwrap_or_default()
     );
+    let body =
+        format!("Click here to reset your password: <a href=\"{reset_url}\">{reset_url}</a>");
     match Mail::send(&payload.email, &payload.email, "Reset Password", &body) {
         Ok(_) => JsonResponse::send(StatusCode::OK, Some(token.status), None),
         Err(e) => {
@@ -296,11 +300,90 @@ async fn password_reset(
     }
 }
 
+#[derive(Deserialize)]
+struct CreateAgentPayload {
+    fullname: String,
+    email: String,
+    phone_number: String,
+}
+
+#[derive(Deserialize, Insertable)]
+#[diesel(table_name = schema::agents)]
+pub struct CreateAgentFromSupertokensPayload {
+    supertokens_user_id: String,
+    fullname: String,
+    email: String,
+    phone_number: String,
+}
+
+async fn create(
+    State(pool): State<DbPool>,
+    Json(payload): Json<CreateAgentPayload>,
+) -> AxumResponse<Agent> {
+    let supertokens = match SuperTokens::signup(&payload.email).await {
+        Ok(s) => s,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    if supertokens.status != "OK" {
+        return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(supertokens.status));
+    }
+
+    let payload = CreateAgentFromSupertokensPayload {
+        supertokens_user_id: supertokens.clone().recipeUserId.unwrap_or_default(),
+        fullname: payload.fullname,
+        email: payload.email,
+        phone_number: payload.phone_number,
+    };
+
+    let agent = match Agent::create_from_supertokens(&pool, &payload) {
+        Ok(a) => a,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    let token = match SuperTokens::create_password_reset_token(
+        &supertokens.recipeUserId.unwrap_or_default(),
+        &payload.email,
+    )
+    .await
+    {
+        Ok(t) => t,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    let frontend_url = Envs::frontend_url();
+    let reset_url = format!(
+        "{}/auth/reset-password?token={}",
+        frontend_url,
+        token.token.unwrap_or_default()
+    );
+    let body =
+        format!("Click here to reset your password: <a href=\"{reset_url}\">{reset_url}</a>");
+    match Mail::send(
+        &payload.email,
+        &payload.email,
+        "Primepro Indonesia Agent Creation",
+        &body,
+    ) {
+        Ok(_) => JsonResponse::send(StatusCode::OK, Some(agent), None),
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     Router::new()
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
         .route("/password-reset", post(password_reset))
+        .route("/", post(create))
     // .route("/", post(create_agent))
     // .route("/", get(find_agents))
     // .route("/{id}", delete(delete_agent))

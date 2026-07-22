@@ -45,7 +45,7 @@
 use serde::{Deserialize, Serialize};
 
 #[allow(non_snake_case)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct SigninResponse {
     pub status: String,
     pub recipeUserId: Option<String>,

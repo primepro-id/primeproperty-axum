@@ -5,6 +5,7 @@ use diesel::{
 use serde::Serialize;
 
 use super::agent_role::AgentRole;
+use crate::agents::controller::CreateAgentFromSupertokensPayload;
 // use super::controller::PAGE_SIZE;
 // use super::controller::{CreateAgentPayload, FindAgentQuery, UpdateAgentPayload};
 use crate::db::{DbPool, DbPoolExt};
@@ -50,6 +51,20 @@ impl Agent {
 
         agents::table
             .filter(agents::email.eq(email))
+            .get_result(conn)
+    }
+
+    pub fn create_from_supertokens(
+        pool: &DbPool,
+        payload: &CreateAgentFromSupertokensPayload,
+    ) -> QueryResult<Agent> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        diesel::insert_into(agents::table)
+            .values(payload)
             .get_result(conn)
     }
 
