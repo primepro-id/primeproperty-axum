@@ -1,7 +1,7 @@
 use super::{
     request::{
         ConsumePasswordResetTokenRequest, CreatePasswordResetTokenRequest, CreateSessionRequest,
-        SigninRequest, UpdateUserPasswordRequest, VerifySessionRequest,
+        RefreshSessionRequest, SigninRequest, UpdateUserPasswordRequest, VerifySessionRequest,
     },
     response::{
         ConsumePasswordResetTokenResponse, CreatePasswordResetTokenResponse, CreateSessionResponse,
@@ -92,6 +92,19 @@ impl SuperTokens {
     ) -> Result<VerifySessionResponse, reqwest::Error> {
         let req = VerifySessionRequest::new(access_token);
         let res = match Self::post(Self::VERIFY_SESSION_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    const REFRESH_SESSION_PATH: &str = "/recipe/session/refresh";
+    pub async fn refresh_session(
+        refresh_token: &str,
+    ) -> Result<CreateSessionResponse, reqwest::Error> {
+        let req = RefreshSessionRequest::new(refresh_token);
+        let res = match Self::post(Self::REFRESH_SESSION_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };

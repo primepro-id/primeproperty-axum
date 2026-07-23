@@ -142,13 +142,13 @@ pub struct UpdateUserResponse {
 //   }
 // }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[allow(non_snake_case)]
 pub struct Session {
     pub userDataInJWT: Agent,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct VerifySessionResponse {
     pub status: String,
     pub session: Session,

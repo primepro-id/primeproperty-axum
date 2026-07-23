@@ -3,5 +3,5 @@ mod response;
 mod supertokens;
 
 // pub use response::SigninResponse;
-pub use response::{CreateSessionResponse, UpdateUserResponse};
+pub use response::{CreateSessionResponse, UpdateUserResponse, VerifySessionResponse};
 pub use supertokens::SuperTokens;

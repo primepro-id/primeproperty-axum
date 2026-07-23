@@ -9,7 +9,7 @@ use crate::{
     mail::Mail,
     middleware::{AxumResponse, JsonResponse, RequestMiddleware},
     schema,
-    supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse},
+    supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse, VerifySessionResponse},
 };
 use axum::{
     extract::{Json, State},
@@ -379,11 +379,26 @@ async fn create(
     }
 }
 
+#[derive(Deserialize)]
+pub struct RefreshSessionPayload {
+    refresh_token: String,
+}
+
+async fn refresh_session(
+    Json(payload): Json<RefreshSessionPayload>,
+) -> AxumResponse<CreateSessionResponse> {
+    match SuperTokens::refresh_session(&payload.refresh_token).await {
+        Ok(s) => JsonResponse::send(StatusCode::OK, Some(s), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     let public_routes = Router::new()
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
-        .route("/password-reset", post(password_reset));
+        .route("/password-reset", post(password_reset))
+        .route("/session/refresh", post(refresh_session));
 
     let protected_routes = Router::new()
         .route("/", post(create))

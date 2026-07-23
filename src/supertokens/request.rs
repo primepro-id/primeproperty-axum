@@ -52,6 +52,24 @@ impl VerifySessionRequest {
 
 #[allow(non_snake_case)]
 #[derive(Serialize)]
+pub(super) struct RefreshSessionRequest {
+    refreshToken: String,
+    enableAntiCsrf: bool,
+    useDynamicSigningKey: bool,
+}
+
+impl RefreshSessionRequest {
+    pub(super) fn new(refresh_token: &str) -> Self {
+        Self {
+            refreshToken: refresh_token.to_string(),
+            enableAntiCsrf: false,
+            useDynamicSigningKey: false,
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[derive(Serialize)]
 pub(super) struct CreatePasswordResetTokenRequest {
     pub(super) userId: String,
     pub(super) email: String,
