@@ -29,7 +29,39 @@ pub struct Agent {
 impl DbPoolExt for Agent {}
 
 impl Agent {
-    pub fn find_by_supertokens_user_id(
+    pub(super) fn find(pool: &DbPool) -> QueryResult<Vec<Self>> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        agents::table
+            .filter(agents::role.ne(AgentRole::Admin))
+            .get_results(conn)
+    }
+
+    pub(super) fn count(pool: &DbPool) -> QueryResult<i64> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        agents::table
+            .filter(agents::role.ne(AgentRole::Admin))
+            .count()
+            .get_result(conn)
+    }
+
+    pub(super) fn find_unique(pool: &DbPool, id: &uuid::Uuid) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        agents::table.find(id).get_result(conn)
+    }
+
+    pub(super) fn find_by_supertokens_user_id(
         pool: &DbPool,
         supertokens_user_id: &str,
     ) -> QueryResult<Self> {
@@ -40,6 +72,17 @@ impl Agent {
 
         agents::table
             .filter(agents::supertokens_user_id.eq(supertokens_user_id))
+            .get_result(conn)
+    }
+
+    pub(super) fn find_by_fullname(pool: &DbPool, fullname: &str) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        agents::table
+            .filter(agents::fullname.eq(fullname))
             .get_result(conn)
     }
 
@@ -54,7 +97,7 @@ impl Agent {
             .get_result(conn)
     }
 
-    pub fn create_from_supertokens(
+    pub(super) fn create_from_supertokens(
         pool: &DbPool,
         payload: &CreateAgentFromSupertokensPayload,
     ) -> QueryResult<Agent> {

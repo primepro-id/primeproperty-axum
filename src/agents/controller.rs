@@ -7,14 +7,14 @@ use crate::{
     db::DbPool,
     envs::Envs,
     mail::Mail,
-    middleware::{AxumResponse, JsonResponse, RequestMiddleware},
+    middleware::{AxumResponse, DataAndPagination, JsonResponse, Pagination, RequestMiddleware},
     schema,
     supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse, VerifySessionResponse},
 };
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, State},
     middleware::from_fn,
-    routing::post,
+    routing::{get, post},
 };
 // use axum::http::{HeaderMap, Method};
 // use axum::middleware::{from_fn_with_state, Next};
@@ -334,7 +334,7 @@ async fn create(
 
     let payload = CreateAgentFromSupertokensPayload {
         supertokens_user_id: supertokens.clone().recipeUserId.unwrap_or_default(),
-        fullname: payload.fullname,
+        fullname: payload.fullname.to_lowercase(), // must be lowercase
         email: payload.email,
         phone_number: payload.phone_number,
     };
@@ -393,18 +393,83 @@ async fn refresh_session(
     }
 }
 
+async fn find(
+    State(pool): State<DbPool>,
+    // Query(query): Query<FindAgentQuery>,
+) -> AxumResponse<DataAndPagination<Vec<Agent>>> {
+    let agents = match Agent::find(&pool) {
+        Ok(agents) => agents,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            )
+        }
+    };
+    let agents_count = match Agent::count(&pool) {
+        Ok(agents_count) => agents_count,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            )
+        }
+    };
+
+    let pagination = Pagination::new(None, Some(agents_count as u32), agents_count as u32);
+    let data = DataAndPagination::new(Some(agents), pagination);
+
+    JsonResponse::send(StatusCode::OK, Some(data), None)
+}
+
+async fn find_unique(State(pool): State<DbPool>, Path(id): Path<String>) -> AxumResponse<Agent> {
+    let agent_id = match uuid::Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(er) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(er.to_string()),
+            )
+        }
+    };
+    match Agent::find_unique(&pool, &agent_id) {
+        Ok(a) => JsonResponse::send(StatusCode::OK, Some(a), None),
+        Err(err) => JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(err.to_string())),
+    }
+}
+
+async fn find_by_fullname(
+    State(pool): State<DbPool>,
+    Path(fullname): Path<String>,
+) -> AxumResponse<Agent> {
+    let clean_fullname = fullname.to_lowercase().replace("-", " ");
+    match Agent::find_by_fullname(&pool, &clean_fullname) {
+        Ok(a) => JsonResponse::send(StatusCode::OK, Some(a), None),
+        Err(err) => JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(err.to_string())),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     let public_routes = Router::new()
+        .route("/", get(find))
+        .route("/{id}", get(find_unique))
+        .route("/fullname/{fullname}", get(find_by_fullname))
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
-        .route("/password-reset", post(password_reset))
-        .route("/session/refresh", post(refresh_session));
+        .route("/password-reset", post(password_reset));
 
-    let protected_routes = Router::new()
+    let session_routes = Router::new()
+        .route("/session/refresh", post(refresh_session))
+        .layer(from_fn(RequestMiddleware::check_session));
+
+    let admin_routes = Router::new()
         .route("/", post(create))
         .layer(from_fn(RequestMiddleware::check_admin));
 
-    public_routes.merge(protected_routes)
+    public_routes.merge(session_routes).merge(admin_routes)
     // .route("/", post(create_agent))
     // .route("/", get(find_agents))
     // .route("/{id}", delete(delete_agent))
