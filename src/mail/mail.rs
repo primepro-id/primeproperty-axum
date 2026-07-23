@@ -1,33 +1,6 @@
-// use lettre::message::{Mailbox, header::ContentType};
-// use lettre::transport::smtp::authentication::Credentials;
-// use lettre::{Message, SmtpTransport, Transport};
-
-// fn main() {
-//     let email = Message::builder()
-//         .from(Mailbox::new(Some("NoBody".to_owned()), "nobody@domain.tld".parse().unwrap()))
-//         .reply_to(Mailbox::new(Some("Yuin".to_owned()), "yuin@domain.tld".parse().unwrap()))
-//         .to(Mailbox::new(Some("Hei".to_owned()), "hei@domain.tld".parse().unwrap()))
-//         .subject("Happy new year")
-//         .header(ContentType::TEXT_PLAIN)
-//         .body(String::from("Be happy!"))
-//         .unwrap();
-
-//     let creds = Credentials::new("smtp_username".to_owned(), "smtp_password".to_owned());
-
-//     // Open a remote connection to gmail
-//     let mailer = SmtpTransport::relay("smtp.gmail.com")
-//         .unwrap()
-//         .credentials(creds)
-//         .build();
-
-//     // Send the email
-//     match mailer.send(&email) {
-//         Ok(_) => println!("Email sent successfully!"),
-//         Err(e) => panic!("Could not send email: {e:?}"),
-//     }
-// }
-
-use lettre::message::{header::ContentType, Mailbox};
+use lettre::message::header::MessageId;
+use lettre::message::SinglePart;
+use lettre::message::{header::ContentType, Mailbox, MultiPart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Address, Message, SmtpTransport, Transport};
 
@@ -43,7 +16,7 @@ impl Mail {
         let creds = Credentials::new(username, password);
 
         match SmtpTransport::relay(&smtp_host) {
-            Ok(transport) => Ok(transport.credentials(creds).build()),
+            Ok(transport) => Ok(transport.port(465).credentials(creds).build()),
             Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
         }
     }
@@ -64,13 +37,32 @@ impl Mail {
             Ok(addr) => addr,
             Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
         };
+        let message_id = format!(
+            "<{}.{}@primeproindonesia.com>",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default(),
+            uuid::Uuid::new_v4()
+        );
+        let multipart = MultiPart::alternative()
+            .singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(format!(
+                        "Please view this email in an HTML-compatible client.\n\n{}",
+                        body
+                    )),
+            )
+            .singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_HTML)
+                    .body(body.to_string()),
+            );
 
         match Message::builder()
             .from(Mailbox::new(Some(from.clone()), from_address))
             .to(Mailbox::new(Some(to.to_owned()), to_address))
             .subject(subject)
-            .header(ContentType::TEXT_HTML)
-            .body(String::from(body))
+            .header(MessageId::from(message_id))
+            .multipart(multipart)
         {
             Ok(msg) => Ok(msg),
             Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),

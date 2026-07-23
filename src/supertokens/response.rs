@@ -44,6 +44,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::agents::Agent;
+
 #[allow(non_snake_case)]
 #[derive(Deserialize, Clone)]
 pub struct SigninResponse {
@@ -141,6 +143,13 @@ pub struct UpdateUserResponse {
 // }
 
 #[derive(Deserialize)]
+#[allow(non_snake_case)]
+pub struct Session {
+    pub userDataInJWT: Agent,
+}
+
+#[derive(Deserialize)]
 pub struct VerifySessionResponse {
     pub status: String,
+    pub session: Session,
 }

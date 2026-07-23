@@ -2,7 +2,7 @@ use diesel::{
     BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, QueryResult,
     Queryable, RunQueryDsl,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::agent_role::AgentRole;
 use crate::agents::controller::CreateAgentFromSupertokensPayload;
@@ -11,7 +11,7 @@ use crate::agents::controller::CreateAgentFromSupertokensPayload;
 use crate::db::{DbPool, DbPoolExt};
 use crate::schema::agents;
 
-#[derive(Debug, Serialize, Queryable, Clone)]
+#[derive(Debug, Serialize, Queryable, Clone, Deserialize)]
 pub struct Agent {
     id: uuid::Uuid,
     pub supertokens_user_id: Option<String>,
@@ -21,7 +21,7 @@ pub struct Agent {
     email: String,
     phone_number: String,
     profile_picture_url: Option<String>,
-    role: AgentRole,
+    pub role: AgentRole,
     instagram: Option<String>,
     description: Option<String>,
 }

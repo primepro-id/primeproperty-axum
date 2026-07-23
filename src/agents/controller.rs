@@ -387,7 +387,7 @@ pub fn routes() -> Router<DbPool> {
 
     let protected_routes = Router::new()
         .route("/", post(create))
-        .layer(from_fn(RequestMiddleware::check_session));
+        .layer(from_fn(RequestMiddleware::check_admin));
 
     public_routes.merge(protected_routes)
     // .route("/", post(create_agent))
