@@ -1,5 +1,8 @@
+// 2026-07-27
+// CAN REFACTOR LATER
+// THIS TABLE IS NOT USED
+//
 mod controller;
 mod model;
-mod routes;
 
-pub use routes::banks_routes;
+pub use controller::routes;

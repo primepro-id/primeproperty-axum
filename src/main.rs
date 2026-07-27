@@ -1,5 +1,5 @@
 mod agents;
-// mod banks;
+mod banks;
 mod db;
 // mod developers;
 mod envs;
@@ -71,7 +71,7 @@ async fn main() {
     let pool = build_db_pool();
     let app = Router::new()
         .nest("/agents", agents::routes())
-        // .nest("/banks", banks::banks_routes(pool.clone()))
+        // .nest("/banks", banks::routes())
         // .nest("/developers", developers::developers_routes(pool.clone()))
         // .nest("/leads", leads::lead_routes())
         // .nest("/properties", properties::property_routes())
