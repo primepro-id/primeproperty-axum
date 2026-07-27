@@ -1,9 +1,7 @@
-use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
-use serde::Serialize;
-
-// use crate::banks::controller::{CreateBankPayload, UpdateBankPayload};
 use crate::db::{DbPool, DbPoolExt};
 use crate::schema;
+use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
+use serde::Serialize;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
 pub(super) struct Bank {
@@ -35,37 +33,4 @@ impl Bank {
 
         schema::banks::table.count().get_result(conn)
     }
-
-    // pub(super) fn find_by_id(pool: &DbPool, id: &i32) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     schema::banks::table
-    //         .filter(schema::banks::id.eq(id))
-    //         .get_result(conn)
-    // }
-
-    // pub(super) fn create(pool: &DbPool, payload: &CreateBankPayload) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::insert_into(schema::banks::table)
-    //         .values(payload)
-    //         .get_result(conn)
-    // }
-
-    // pub(super) fn update(
-    //     pool: &DbPool,
-    //     id: &i32,
-    //     payload: &UpdateBankPayload,
-    // ) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::update(schema::banks::table)
-    //         .filter(schema::banks::id.eq(id))
-    //         .set(payload)
-    //         .get_result(conn)
-    // }
-
-    // pub(super) fn delete(pool: &DbPool, id: &i32) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::delete(schema::banks::table)
-    //         .filter(schema::banks::id.eq(id))
-    //         .get_result(conn)
-    // }
 }

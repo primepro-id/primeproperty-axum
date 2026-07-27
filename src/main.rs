@@ -1,7 +1,7 @@
 mod agents;
 mod banks;
 mod db;
-// mod developers;
+mod developers;
 mod envs;
 // mod leads;
 mod mail;
@@ -71,13 +71,12 @@ async fn main() {
     let pool = build_db_pool();
     let app = Router::new()
         .nest("/agents", agents::routes())
-        // .nest("/banks", banks::routes())
-        // .nest("/developers", developers::developers_routes(pool.clone()))
+        .nest("/banks", banks::routes())
+        .nest("/developers", developers::routes())
         // .nest("/leads", leads::lead_routes())
         // .nest("/properties", properties::property_routes())
         .nest("/s3", s3::routes())
         .with_state(pool)
-        // .layer(from_fn(middleware::Session::middleware))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .layer(NewSentryLayer::new_from_top())
