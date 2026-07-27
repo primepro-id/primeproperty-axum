@@ -1,7 +1,8 @@
 use super::{
     request::{
         ConsumePasswordResetTokenRequest, CreatePasswordResetTokenRequest, CreateSessionRequest,
-        RefreshSessionRequest, SigninRequest, UpdateUserPasswordRequest, VerifySessionRequest,
+        DeleteUserEmailRequest, RefreshSessionRequest, SigninRequest, UpdateUserPasswordRequest,
+        VerifySessionRequest,
     },
     response::{
         ConsumePasswordResetTokenResponse, CreatePasswordResetTokenResponse, CreateSessionResponse,
@@ -10,22 +11,11 @@ use super::{
 };
 use crate::{agents::Agent, envs::Envs};
 use serde::Serialize;
+use tracing_subscriber::fmt::format;
 
 pub struct SuperTokens;
 
 impl SuperTokens {
-    // async fn get(path: &str) -> Result<reqwest::Response, reqwest::Error> {
-    //     let url = format!("{}{}", Envs::supertokens_connection_uri(), path);
-    //     let api_key = Envs::supertokens_api_key();
-
-    //     reqwest::Client::new()
-    //         .get(url)
-    //         .header("Content-Type", "application/json")
-    //         .header("api-key", api_key)
-    //         .send()
-    //         .await
-    // }
-
     async fn post<T: Serialize>(
         path: &str,
         payload: &T,
@@ -152,6 +142,23 @@ impl SuperTokens {
         let req = UpdateUserPasswordRequest {
             recipeUserId: recipe_user_id.to_string(),
             password: Some(password.to_string()),
+        };
+        let res = match Self::put(Self::USER_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    pub async fn update_deleted_user_email(
+        recipe_user_id: &str,
+        email: &str,
+    ) -> Result<UpdateUserResponse, reqwest::Error> {
+        let new_email = format!("deleted.{recipe_user_id}.{email}");
+        let req = DeleteUserEmailRequest {
+            recipeUserId: recipe_user_id.to_string(),
+            email: Some(new_email),
         };
         let res = match Self::put(Self::USER_PATH, &req).await {
             Ok(r) => r,
