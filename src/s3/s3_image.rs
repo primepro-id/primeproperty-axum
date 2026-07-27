@@ -10,15 +10,18 @@ pub struct S3Image {
     path: String,
     english_label: String,
     indonesian_label: String,
+    endpoint: Option<String>,
 }
 impl S3Image {
     fn new(key: &str) -> Self {
+        let endpoint = Envs::s3_endpoint();
         let bucket = Envs::s3_bucket();
         Self {
             is_cover: false,
             path: format!("/{bucket}/{key}"),
             english_label: "".to_string(),
             indonesian_label: "".to_string(),
+            endpoint: Some(endpoint),
         }
     }
     pub async fn upload(
