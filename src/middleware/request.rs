@@ -1,14 +1,10 @@
 use super::response::{AxumResponse, JsonResponse};
-use crate::{
-    agents::{Agent, AgentRole},
-    supertokens::SuperTokens,
-};
+use crate::{agents::AgentRole, supertokens::SuperTokens};
 use axum::{
     extract::Request,
     http::{HeaderMap, HeaderValue},
     middleware::Next,
 };
-use diesel::QueryResult;
 use reqwest::StatusCode;
 
 pub struct RequestMiddleware;

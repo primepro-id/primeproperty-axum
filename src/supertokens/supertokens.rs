@@ -11,7 +11,6 @@ use super::{
 };
 use crate::{agents::Agent, envs::Envs};
 use serde::Serialize;
-use tracing_subscriber::fmt::format;
 
 pub struct SuperTokens;
 

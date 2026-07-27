@@ -1,15 +1,9 @@
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, QueryResult,
-    Queryable, RunQueryDsl,
-};
-use serde::{Deserialize, Serialize};
-
 use super::agent_role::AgentRole;
 use crate::agents::controller::{CreateAgentFromSupertokensPayload, UpdateAgentPayload};
-// use super::controller::PAGE_SIZE;
-// use super::controller::{CreateAgentPayload, FindAgentQuery, UpdateAgentPayload};
 use crate::db::{DbPool, DbPoolExt};
 use crate::schema::agents;
+use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Queryable, Clone, Deserialize)]
 pub struct Agent {

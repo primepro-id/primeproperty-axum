@@ -1,8 +1,8 @@
+use super::{s3::S3, s3_error::S3Error};
+use crate::envs::Envs;
 use aws_sdk_s3::primitives::ByteStream;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-
-use super::{s3::S3, s3_error::S3Error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct S3Image {
@@ -13,7 +13,7 @@ pub struct S3Image {
 }
 impl S3Image {
     fn new(key: &str) -> Self {
-        let bucket = std::env::var("S3_BUCKET").expect("Missing S3_BUCKET");
+        let bucket = Envs::s3_bucket();
         Self {
             is_cover: false,
             path: format!("/{bucket}/{key}"),

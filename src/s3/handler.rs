@@ -4,6 +4,7 @@ use crate::{
     middleware::{AxumResponse, JsonResponse},
 };
 use axum::{extract::Multipart, routing::post, Router};
+use reqwest::StatusCode;
 
 async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
     let mut uploaded_files: Vec<S3Image> = Vec::new();
@@ -28,7 +29,7 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
         // Reject if either validation fails
         if !is_valid_mime && !is_valid_ext {
             return JsonResponse::send(
-                400,
+                StatusCode::BAD_REQUEST,
                 None,
                 Some("Invalid file format. Only PNG, JPEG, JPG, and WEBP are allowed.".to_string()),
             );
@@ -48,12 +49,16 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
             }
             Err(err) => {
                 println!("[upload_images] ERROR {:?}", err);
-                return JsonResponse::send(500, None, Some(err.to_string()));
+                return JsonResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    None,
+                    Some(err.to_string()),
+                );
             }
         }
     }
 
-    JsonResponse::send(200, Some(uploaded_files), None)
+    JsonResponse::send(StatusCode::OK, Some(uploaded_files), None)
 }
 
 pub fn routes() -> Router<DbPool> {

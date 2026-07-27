@@ -7,14 +7,14 @@ mod envs;
 mod mail;
 mod middleware;
 // mod properties;
-// mod s3;
+mod s3;
 mod schema;
 mod supertokens;
 
 use crate::db::build_db_pool;
 use crate::envs::Envs;
 use axum::http::{HeaderValue, Method};
-use axum::{middleware::from_fn, Router};
+use axum::Router;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -75,7 +75,7 @@ async fn main() {
         // .nest("/developers", developers::developers_routes(pool.clone()))
         // .nest("/leads", leads::lead_routes())
         // .nest("/properties", properties::property_routes())
-        // .nest("/s3", s3::routes())
+        .nest("/s3", s3::routes())
         .with_state(pool)
         // .layer(from_fn(middleware::Session::middleware))
         .layer(cors)
