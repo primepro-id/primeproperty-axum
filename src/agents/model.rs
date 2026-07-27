@@ -5,7 +5,7 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 
 use super::agent_role::AgentRole;
-use crate::agents::controller::CreateAgentFromSupertokensPayload;
+use crate::agents::controller::{CreateAgentFromSupertokensPayload, UpdateAgentPayload};
 // use super::controller::PAGE_SIZE;
 // use super::controller::{CreateAgentPayload, FindAgentQuery, UpdateAgentPayload};
 use crate::db::{DbPool, DbPoolExt};
@@ -13,7 +13,7 @@ use crate::schema::agents;
 
 #[derive(Debug, Serialize, Queryable, Clone, Deserialize)]
 pub struct Agent {
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
     pub supertokens_user_id: Option<String>,
     created_at: chrono::NaiveDateTime,
     updated_at: chrono::NaiveDateTime,
@@ -108,6 +108,22 @@ impl Agent {
 
         diesel::insert_into(agents::table)
             .values(payload)
+            .get_result(conn)
+    }
+
+    pub(super) fn update(
+        pool: &DbPool,
+        user_id: &uuid::Uuid,
+        payload: &UpdateAgentPayload,
+    ) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        diesel::update(agents::table)
+            .filter(agents::id.eq(user_id))
+            .set(payload)
             .get_result(conn)
     }
 

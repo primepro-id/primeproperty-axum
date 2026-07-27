@@ -3,7 +3,12 @@ use crate::{
     agents::{Agent, AgentRole},
     supertokens::SuperTokens,
 };
-use axum::{extract::Request, middleware::Next};
+use axum::{
+    extract::Request,
+    http::{HeaderMap, HeaderValue},
+    middleware::Next,
+};
+use diesel::QueryResult;
 use reqwest::StatusCode;
 
 pub struct RequestMiddleware;
@@ -30,10 +35,19 @@ impl RequestMiddleware {
             }
         };
 
-        match session.status.as_str() {
-            "OK" => Ok(next.run(req).await),
-            _ => {
-                let res = JsonResponse::send(StatusCode::UNAUTHORIZED, None, Some(session.status));
+        if session.status.as_str() != "OK" {
+            let res = JsonResponse::send(StatusCode::UNAUTHORIZED, None, Some(session.status));
+            return Err(res);
+        }
+
+        match HeaderValue::from_str(&session.session.userDataInJWT.id.to_string()) {
+            Ok(x_user_id) => {
+                let mut new_req = req;
+                new_req.headers_mut().insert("x-user-id", x_user_id);
+                Ok(next.run(new_req).await)
+            }
+            Err(e) => {
+                let res = JsonResponse::send(StatusCode::UNAUTHORIZED, None, Some(e.to_string()));
                 return Err(res);
             }
         }
@@ -71,6 +85,23 @@ impl RequestMiddleware {
                 let res = JsonResponse::send(StatusCode::FORBIDDEN, None, None);
                 return Err(res);
             }
+        }
+    }
+
+    pub fn get_user_uuid(header_map: &HeaderMap) -> Option<uuid::Uuid> {
+        let header_user_id = match header_map.get("x-user-id") {
+            Some(id) => id,
+            None => return None,
+        };
+
+        let user_id_string = match header_user_id.to_str() {
+            Ok(s) => s,
+            Err(_) => return None,
+        };
+
+        match uuid::Uuid::parse_str(user_id_string) {
+            Ok(id) => Some(id),
+            Err(_) => None,
         }
     }
 }

@@ -3,6 +3,7 @@
 // use crate::middleware::{JsonFindResponse, Session};
 // use crate::supertokens;
 use super::model::Agent;
+use super::AgentRole;
 use crate::{
     db::DbPool,
     envs::Envs,
@@ -13,15 +14,16 @@ use crate::{
 };
 use axum::{
     extract::{Json, Path, State},
+    http::HeaderMap,
     middleware::from_fn,
-    routing::{get, post},
+    routing::{get, post, put},
 };
 // use axum::http::{HeaderMap, Method};
 // use axum::middleware::{from_fn_with_state, Next};
 // use axum::response::Response;
 // use axum::routing::{delete, get, post, put};
 use axum::Router;
-use diesel::prelude::Insertable;
+use diesel::{prelude::Insertable, query_builder::AsChangeset};
 use reqwest::StatusCode;
 use serde::Deserialize;
 // use diesel::prelude::{AsChangeset, Insertable};
@@ -452,6 +454,68 @@ async fn find_by_fullname(
     }
 }
 
+#[derive(Deserialize, AsChangeset, Clone)]
+#[diesel(table_name = schema::agents)]
+pub struct UpdateAgentPayload {
+    profile_picture_url: Option<String>,
+    fullname: Option<String>,
+    phone_number: Option<String>,
+    instagram: Option<String>,
+    description: Option<String>,
+}
+
+async fn update(
+    State(pool): State<DbPool>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdateAgentPayload>,
+) -> AxumResponse<Agent> {
+    let session_user_id = match RequestMiddleware::get_user_uuid(&headers) {
+        Some(id) => id,
+        None => {
+            return JsonResponse::send(
+                StatusCode::UNAUTHORIZED,
+                None,
+                Some("Unauthorized".to_string()),
+            )
+        }
+    };
+
+    let target_user_id = match uuid::Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
+    };
+
+    let session_agent = match Agent::find_unique(&pool, &session_user_id) {
+        Ok(agent) => agent,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    if target_user_id != session_user_id {
+        match session_agent.role {
+            AgentRole::Admin => (),
+            _ => {
+                return JsonResponse::send(
+                    StatusCode::FORBIDDEN,
+                    None,
+                    Some("Forbidden".to_string()),
+                )
+            }
+        }
+    }
+
+    match Agent::update(&pool, &target_user_id, &payload) {
+        Ok(agent) => JsonResponse::send(StatusCode::OK, Some(agent), None),
+        Err(err) => JsonResponse::send(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            None,
+            Some(err.to_string()),
+        ),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     let public_routes = Router::new()
         .route("/", get(find))
@@ -459,10 +523,11 @@ pub fn routes() -> Router<DbPool> {
         .route("/fullname/{fullname}", get(find_by_fullname))
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
-        .route("/password-reset", post(password_reset));
+        .route("/password-reset", post(password_reset))
+        .route("/session/refresh", post(refresh_session));
 
     let session_routes = Router::new()
-        .route("/session/refresh", post(refresh_session))
+        .route("/{id}", put(update))
         .layer(from_fn(RequestMiddleware::check_session));
 
     let admin_routes = Router::new()
