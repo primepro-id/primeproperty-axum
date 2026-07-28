@@ -3,10 +3,10 @@ mod banks;
 mod db;
 mod developers;
 mod envs;
-// mod leads;
+mod leads;
 mod mail;
 mod middleware;
-// mod properties;
+mod properties;
 mod s3;
 mod schema;
 mod supertokens;
@@ -73,7 +73,7 @@ async fn main() {
         .nest("/agents", agents::routes())
         .nest("/banks", banks::routes())
         .nest("/developers", developers::routes())
-        // .nest("/leads", leads::lead_routes())
+        .nest("/leads", leads::routes())
         // .nest("/properties", properties::property_routes())
         .nest("/s3", s3::routes())
         .with_state(pool)

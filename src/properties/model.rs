@@ -1,8 +1,8 @@
 use super::{
-    controllers::{
-        CreateUpdatePropertySqlPayload, FindPropertyQuery, FindPropertySort, PropertyWithRelation,
-        UpdateConfigurationsSqlPayload,
-    },
+    // controllers::{
+    //     CreateUpdatePropertySqlPayload, FindPropertyQuery, FindPropertySort, PropertyWithRelation,
+    //     UpdateConfigurationsSqlPayload,
+    // },
     enumerates::{
         BuildingCondition, Currency, FurnitureCapacity, PurchaseStatus, RentTime, SoldChannel,
         SoldStatus,
@@ -29,8 +29,8 @@ pub struct Property {
     title: String,
     description: String,
     province: String,
-    pub regency: String,
-    pub street: String,
+    regency: String,
+    street: String,
     gmap_iframe: Option<String>,
     price: i64,
     images: serde_json::Value,
@@ -55,480 +55,480 @@ pub struct Property {
 }
 
 impl Property {
-    pub fn find_one_by_id(pool: &DbPool, id: &i32) -> QueryResult<PropertyWithRelation> {
+    pub fn find_unique(pool: &DbPool, id: &i32) -> QueryResult<Property> {
         let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
         properties::table
-            .filter(properties::id.eq(id))
-            .inner_join(agents::table)
-            .left_join(developers::table)
-            .select((
-                properties::all_columns,
-                agents::all_columns,
-                developers::all_columns.nullable(),
-            ))
+            .find(id)
+            // .inner_join(agents::table)
+            // .left_join(developers::table)
+            // .select((
+            //     properties::all_columns,
+            //     agents::all_columns,
+            //     developers::all_columns.nullable(),
+            // ))
             .get_result(conn)
     }
 
-    pub(super) fn update(
-        pool: &DbPool,
-        id: &i32,
-        payload: &CreateUpdatePropertySqlPayload,
-    ) -> QueryResult<Property> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub(super) fn update(
+    //     pool: &DbPool,
+    //     id: &i32,
+    //     payload: &CreateUpdatePropertySqlPayload,
+    // ) -> QueryResult<Property> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        diesel::update(properties::table.filter(properties::id.eq(id)))
-            .set(payload)
-            .get_result(conn)
-    }
+    //     diesel::update(properties::table.filter(properties::id.eq(id)))
+    //         .set(payload)
+    //         .get_result(conn)
+    // }
 
-    pub(super) fn delete(pool: &DbPool, id: &i32, role: &AgentRole) -> QueryResult<Self> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub(super) fn delete(pool: &DbPool, id: &i32, role: &AgentRole) -> QueryResult<Self> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        match role {
-            AgentRole::Admin => diesel::delete(properties::table)
-                .filter(properties::id.eq(id))
-                .get_result(conn),
-            AgentRole::Agent => diesel::update(properties::table)
-                .filter(properties::id.eq(id))
-                .set(properties::is_deleted.eq(true))
-                .get_result(conn),
-        }
-    }
+    //     match role {
+    //         AgentRole::Admin => diesel::delete(properties::table)
+    //             .filter(properties::id.eq(id))
+    //             .get_result(conn),
+    //         AgentRole::Agent => diesel::update(properties::table)
+    //             .filter(properties::id.eq(id))
+    //             .set(properties::is_deleted.eq(true))
+    //             .get_result(conn),
+    //     }
+    // }
 
-    pub(super) fn update_configurations(
-        pool: &DbPool,
-        id: &i32,
-        payload: &UpdateConfigurationsSqlPayload,
-    ) -> QueryResult<Self> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub(super) fn update_configurations(
+    //     pool: &DbPool,
+    //     id: &i32,
+    //     payload: &UpdateConfigurationsSqlPayload,
+    // ) -> QueryResult<Self> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        diesel::update(properties::table.filter(properties::id.eq(id)))
-            .set(payload)
-            .get_result(conn)
-    }
+    //     diesel::update(properties::table.filter(properties::id.eq(id)))
+    //         .set(payload)
+    //         .get_result(conn)
+    // }
 
-    pub fn find_distinct_site_paths(pool: &DbPool) -> QueryResult<Vec<String>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_distinct_site_paths(pool: &DbPool) -> QueryResult<Vec<String>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        properties::table
-            .distinct_on(properties::site_path)
-            .select(properties::site_path)
-            .order(properties::site_path.asc())
-            .get_results(conn)
-    }
+    //     properties::table
+    //         .distinct_on(properties::site_path)
+    //         .select(properties::site_path)
+    //         .order(properties::site_path.asc())
+    //         .get_results(conn)
+    // }
 
-    pub fn find_distinct_building_type_paths(
-        pool: &DbPool,
-    ) -> QueryResult<Vec<(PurchaseStatus, String)>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_distinct_building_type_paths(
+    //     pool: &DbPool,
+    // ) -> QueryResult<Vec<(PurchaseStatus, String)>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        properties::table
-            .distinct_on((properties::purchase_status, properties::building_type))
-            .select((properties::purchase_status, properties::building_type))
-            .order((
-                properties::purchase_status.asc(),
-                properties::building_type.asc(),
-            ))
-            .get_results(conn)
-    }
+    //     properties::table
+    //         .distinct_on((properties::purchase_status, properties::building_type))
+    //         .select((properties::purchase_status, properties::building_type))
+    //         .order((
+    //             properties::purchase_status.asc(),
+    //             properties::building_type.asc(),
+    //         ))
+    //         .get_results(conn)
+    // }
 
-    pub fn find_distinct_province_paths(
-        pool: &DbPool,
-    ) -> QueryResult<Vec<(PurchaseStatus, String, String)>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_distinct_province_paths(
+    //     pool: &DbPool,
+    // ) -> QueryResult<Vec<(PurchaseStatus, String, String)>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        properties::table
-            .distinct_on((
-                properties::purchase_status,
-                properties::building_type,
-                properties::province,
-            ))
-            .select((
-                properties::purchase_status,
-                properties::building_type,
-                properties::province,
-            ))
-            .order((
-                properties::purchase_status.asc(),
-                properties::building_type.asc(),
-                properties::province.asc(),
-            ))
-            .get_results(conn)
-    }
+    //     properties::table
+    //         .distinct_on((
+    //             properties::purchase_status,
+    //             properties::building_type,
+    //             properties::province,
+    //         ))
+    //         .select((
+    //             properties::purchase_status,
+    //             properties::building_type,
+    //             properties::province,
+    //         ))
+    //         .order((
+    //             properties::purchase_status.asc(),
+    //             properties::building_type.asc(),
+    //             properties::province.asc(),
+    //         ))
+    //         .get_results(conn)
+    // }
 
-    pub fn find_distinct_regency_paths(
-        pool: &DbPool,
-    ) -> QueryResult<Vec<(PurchaseStatus, String, String, String)>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_distinct_regency_paths(
+    //     pool: &DbPool,
+    // ) -> QueryResult<Vec<(PurchaseStatus, String, String, String)>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        properties::table
-            .distinct_on((
-                properties::purchase_status,
-                properties::building_type,
-                properties::province,
-                properties::regency,
-            ))
-            .select((
-                properties::purchase_status,
-                properties::building_type,
-                properties::province,
-                properties::regency,
-            ))
-            .order((
-                properties::purchase_status.asc(),
-                properties::building_type.asc(),
-                properties::province.asc(),
-                properties::regency.asc(),
-            ))
-            .get_results(conn)
-    }
+    //     properties::table
+    //         .distinct_on((
+    //             properties::purchase_status,
+    //             properties::building_type,
+    //             properties::province,
+    //             properties::regency,
+    //         ))
+    //         .select((
+    //             properties::purchase_status,
+    //             properties::building_type,
+    //             properties::province,
+    //             properties::regency,
+    //         ))
+    //         .order((
+    //             properties::purchase_status.asc(),
+    //             properties::building_type.asc(),
+    //             properties::province.asc(),
+    //             properties::regency.asc(),
+    //         ))
+    //         .get_results(conn)
+    // }
 
-    pub fn find_many_related(
-        pool: &DbPool,
-        property_id: &i32,
-        query: &FindPropertyQuery,
-    ) -> QueryResult<Vec<PropertyWithRelation>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_many_related(
+    //     pool: &DbPool,
+    //     property_id: &i32,
+    //     query: &FindPropertyQuery,
+    // ) -> QueryResult<Vec<PropertyWithRelation>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        let mut property_query = properties::table
-            .filter(
-                properties::id
-                    .ne(property_id)
-                    .and(properties::is_deleted.eq(false))
-                    .and(properties::sold_status.eq(SoldStatus::Available)),
-            )
-            .into_boxed();
+    //     let mut property_query = properties::table
+    //         .filter(
+    //             properties::id
+    //                 .ne(property_id)
+    //                 .and(properties::is_deleted.eq(false))
+    //                 .and(properties::sold_status.eq(SoldStatus::Available)),
+    //         )
+    //         .into_boxed();
 
-        match &query.regency {
-            Some(regency_query) => {
-                property_query =
-                    property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
-            }
-            None => {}
-        }
+    //     match &query.regency {
+    //         Some(regency_query) => {
+    //             property_query =
+    //                 property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
+    //         }
+    //         None => {}
+    //     }
 
-        match &query.street {
-            Some(street_query) => {
-                property_query =
-                    property_query.filter(properties::street.eq(street_query.to_lowercase()));
-            }
-            None => {}
-        }
+    //     match &query.street {
+    //         Some(street_query) => {
+    //             property_query =
+    //                 property_query.filter(properties::street.eq(street_query.to_lowercase()));
+    //         }
+    //         None => {}
+    //     }
 
-        match &query.limit {
-            Some(limit) => {
-                match &query.page {
-                    Some(page) => {
-                        let offset = (page - 1) * limit;
-                        property_query = property_query.offset(offset).limit(limit.clone());
-                    }
-                    None => {
-                        property_query = property_query.limit(limit.clone());
-                    }
-                };
-            }
-            None => {}
-        }
+    //     match &query.limit {
+    //         Some(limit) => {
+    //             match &query.page {
+    //                 Some(page) => {
+    //                     let offset = (page - 1) * limit;
+    //                     property_query = property_query.offset(offset).limit(limit.clone());
+    //                 }
+    //                 None => {
+    //                     property_query = property_query.limit(limit.clone());
+    //                 }
+    //             };
+    //         }
+    //         None => {}
+    //     }
 
-        property_query
-            .order_by(properties::id.desc())
-            .inner_join(agents::table)
-            .left_join(developers::table)
-            .select((
-                properties::all_columns,
-                agents::all_columns,
-                developers::all_columns.nullable(),
-            ))
-            .get_results::<PropertyWithRelation>(conn)
-    }
+    //     property_query
+    //         .order_by(properties::id.desc())
+    //         .inner_join(agents::table)
+    //         .left_join(developers::table)
+    //         .select((
+    //             properties::all_columns,
+    //             agents::all_columns,
+    //             developers::all_columns.nullable(),
+    //         ))
+    //         .get_results::<PropertyWithRelation>(conn)
+    // }
 
-    pub fn find_navigation(
-        pool: &DbPool,
-    ) -> QueryResult<Vec<(String, PurchaseStatus, String, String, String, String)>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-        properties::table
-            .distinct_on(properties::site_path)
-            .select((
-                properties::site_path,
-                properties::purchase_status,
-                properties::building_type,
-                properties::province,
-                properties::regency,
-                properties::street,
-            ))
-            .order(properties::site_path.asc())
-            .get_results(conn)
-    }
+    // pub fn find_navigation(
+    //     pool: &DbPool,
+    // ) -> QueryResult<Vec<(String, PurchaseStatus, String, String, String, String)>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    //     properties::table
+    //         .distinct_on(properties::site_path)
+    //         .select((
+    //             properties::site_path,
+    //             properties::purchase_status,
+    //             properties::building_type,
+    //             properties::province,
+    //             properties::regency,
+    //             properties::street,
+    //         ))
+    //         .order(properties::site_path.asc())
+    //         .get_results(conn)
+    // }
 
-    pub fn create(
-        pool: &DbPool,
-        uuid: &uuid::Uuid,
-        payload: &CreateUpdatePropertySqlPayload,
-    ) -> QueryResult<Property> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn create(
+    //     pool: &DbPool,
+    //     uuid: &uuid::Uuid,
+    //     payload: &CreateUpdatePropertySqlPayload,
+    // ) -> QueryResult<Property> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        diesel::insert_into(properties::table)
-            .values((properties::user_id.eq(uuid), payload))
-            .get_result(conn)
-    }
+    //     diesel::insert_into(properties::table)
+    //         .values((properties::user_id.eq(uuid), payload))
+    //         .get_result(conn)
+    // }
 
-    pub fn find_many(
-        pool: &DbPool,
-        user_id: &Option<uuid::Uuid>,
-        role: &Option<AgentRole>,
-        query: &FindPropertyQuery,
-    ) -> QueryResult<Vec<PropertyWithRelation>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn find_many(
+    //     pool: &DbPool,
+    //     user_id: &Option<uuid::Uuid>,
+    //     role: &Option<AgentRole>,
+    //     query: &FindPropertyQuery,
+    // ) -> QueryResult<Vec<PropertyWithRelation>> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        let mut property_query = match role {
-            Some(role) => match role {
-                AgentRole::Admin => properties::table.into_boxed(),
-                AgentRole::Agent => properties::table
-                    .filter(
-                        properties::user_id
-                            .eq(user_id.unwrap())
-                            .and(properties::is_deleted.eq(false)),
-                    )
-                    .into_boxed(),
-            },
-            None => match &query.s {
-                Some(_) => properties::table
-                    .distinct_on(properties::site_path)
-                    .filter(
-                        properties::is_deleted
-                            .eq(false)
-                            .and(properties::sold_status.eq(SoldStatus::Available)),
-                    )
-                    .into_boxed(),
-                None => properties::table
-                    .filter(
-                        properties::is_deleted
-                            .eq(false)
-                            .and(properties::sold_status.eq(SoldStatus::Available)),
-                    )
-                    .into_boxed(),
-            },
-        };
+    //     let mut property_query = match role {
+    //         Some(role) => match role {
+    //             AgentRole::Admin => properties::table.into_boxed(),
+    //             AgentRole::Agent => properties::table
+    //                 .filter(
+    //                     properties::user_id
+    //                         .eq(user_id.unwrap())
+    //                         .and(properties::is_deleted.eq(false)),
+    //                 )
+    //                 .into_boxed(),
+    //         },
+    //         None => match &query.s {
+    //             Some(_) => properties::table
+    //                 .distinct_on(properties::site_path)
+    //                 .filter(
+    //                     properties::is_deleted
+    //                         .eq(false)
+    //                         .and(properties::sold_status.eq(SoldStatus::Available)),
+    //                 )
+    //                 .into_boxed(),
+    //             None => properties::table
+    //                 .filter(
+    //                     properties::is_deleted
+    //                         .eq(false)
+    //                         .and(properties::sold_status.eq(SoldStatus::Available)),
+    //                 )
+    //                 .into_boxed(),
+    //         },
+    //     };
 
-        if let Some(search_query) = &query.s {
-            match search_query.parse::<i32>() {
-                Ok(id) => {
-                    property_query = property_query
-                        .filter(properties::id.eq(id))
-                        .order_by(properties::id.desc())
-                }
-                Err(_) => {
-                    property_query = property_query
-                        .filter(similarity(properties::site_path, search_query).gt(0.1))
-                        .order_by((
-                            properties::site_path,
-                            similarity(properties::site_path, search_query).desc(),
-                        ))
-                }
-            }
-        }
+    //     if let Some(search_query) = &query.s {
+    //         match search_query.parse::<i32>() {
+    //             Ok(id) => {
+    //                 property_query = property_query
+    //                     .filter(properties::id.eq(id))
+    //                     .order_by(properties::id.desc())
+    //             }
+    //             Err(_) => {
+    //                 property_query = property_query
+    //                     .filter(similarity(properties::site_path, search_query).gt(0.1))
+    //                     .order_by((
+    //                         properties::site_path,
+    //                         similarity(properties::site_path, search_query).desc(),
+    //                     ))
+    //             }
+    //         }
+    //     }
 
-        if let Some(province_query) = &query.province {
-            property_query =
-                property_query.filter(properties::province.eq(province_query.to_lowercase()));
-        }
+    //     if let Some(province_query) = &query.province {
+    //         property_query =
+    //             property_query.filter(properties::province.eq(province_query.to_lowercase()));
+    //     }
 
-        if let Some(regency_query) = &query.regency {
-            property_query =
-                property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
-        }
+    //     if let Some(regency_query) = &query.regency {
+    //         property_query =
+    //             property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
+    //     }
 
-        if let Some(street_query) = &query.street {
-            property_query =
-                property_query.filter(properties::street.eq(street_query.to_lowercase()));
-        }
+    //     if let Some(street_query) = &query.street {
+    //         property_query =
+    //             property_query.filter(properties::street.eq(street_query.to_lowercase()));
+    //     }
 
-        if let Some(is_popular) = &query.is_popular {
-            let filter_json = serde_json::json!({ "is_popular": is_popular});
-            property_query = property_query.filter(properties::configurations.contains(filter_json))
-        }
+    //     if let Some(is_popular) = &query.is_popular {
+    //         let filter_json = serde_json::json!({ "is_popular": is_popular});
+    //         property_query = property_query.filter(properties::configurations.contains(filter_json))
+    //     }
 
-        if let Some(is_prime) = &query.is_prime {
-            if *is_prime {
-                property_query = property_query.filter(properties::developer_id.is_not_null())
-            }
-        }
+    //     if let Some(is_prime) = &query.is_prime {
+    //         if *is_prime {
+    //             property_query = property_query.filter(properties::developer_id.is_not_null())
+    //         }
+    //     }
 
-        if let Some(sold_status) = &query.sold_status {
-            property_query = property_query.filter(properties::sold_status.eq(sold_status))
-        }
+    //     if let Some(sold_status) = &query.sold_status {
+    //         property_query = property_query.filter(properties::sold_status.eq(sold_status))
+    //     }
 
-        if let Some(purchase_status) = &query.purchase_status {
-            property_query = property_query.filter(
-                properties::purchase_status
-                    .eq(purchase_status)
-                    .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
-            )
-        }
+    //     if let Some(purchase_status) = &query.purchase_status {
+    //         property_query = property_query.filter(
+    //             properties::purchase_status
+    //                 .eq(purchase_status)
+    //                 .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
+    //         )
+    //     }
 
-        if let Some(building_type) = &query.building_type {
-            property_query =
-                property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
-        }
+    //     if let Some(building_type) = &query.building_type {
+    //         property_query =
+    //             property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
+    //     }
 
-        if let Some(dev_id) = &query.developer_id {
-            property_query = property_query.filter(properties::developer_id.eq(dev_id));
-        }
+    //     if let Some(dev_id) = &query.developer_id {
+    //         property_query = property_query.filter(properties::developer_id.eq(dev_id));
+    //     }
 
-        if let Some(bank_id) = &query.bank_id {
-            property_query = property_query.filter(properties::bank_id.eq(bank_id));
-        }
+    //     if let Some(bank_id) = &query.bank_id {
+    //         property_query = property_query.filter(properties::bank_id.eq(bank_id));
+    //     }
 
-        if let Some(ids) = &query.ids {
-            let id_list: Vec<i32> = ids
-                .split(",")
-                .filter_map(|id| id.trim().parse::<i32>().ok())
-                .collect();
-            if id_list.len() > 0 {
-                property_query = property_query.filter(properties::id.eq_any(id_list));
-            }
-        }
+    //     if let Some(ids) = &query.ids {
+    //         let id_list: Vec<i32> = ids
+    //             .split(",")
+    //             .filter_map(|id| id.trim().parse::<i32>().ok())
+    //             .collect();
+    //         if id_list.len() > 0 {
+    //             property_query = property_query.filter(properties::id.eq_any(id_list));
+    //         }
+    //     }
 
-        if let Some(limit) = &query.limit {
-            match &query.page {
-                Some(page) => {
-                    let offset = (page - 1) * limit;
-                    property_query = property_query.offset(offset).limit(limit.clone());
-                }
-                None => {
-                    property_query = property_query.limit(limit.clone());
-                }
-            };
-        }
+    //     if let Some(limit) = &query.limit {
+    //         match &query.page {
+    //             Some(page) => {
+    //                 let offset = (page - 1) * limit;
+    //                 property_query = property_query.offset(offset).limit(limit.clone());
+    //             }
+    //             None => {
+    //                 property_query = property_query.limit(limit.clone());
+    //             }
+    //         };
+    //     }
 
-        match &query.sort {
-            Some(sort) => match sort {
-                FindPropertySort::LowestPrice => {
-                    property_query = property_query.order_by(properties::price.asc())
-                }
-                FindPropertySort::HighestPrice => {
-                    property_query = property_query.order_by(properties::price.desc())
-                }
-            },
-            None => match &query.s {
-                Some(_) => {}
-                None => match &query.ids {
-                    Some(_) => {}
-                    None => property_query = property_query.order_by(properties::id.desc()),
-                },
-            },
-        }
+    //     match &query.sort {
+    //         Some(sort) => match sort {
+    //             FindPropertySort::LowestPrice => {
+    //                 property_query = property_query.order_by(properties::price.asc())
+    //             }
+    //             FindPropertySort::HighestPrice => {
+    //                 property_query = property_query.order_by(properties::price.desc())
+    //             }
+    //         },
+    //         None => match &query.s {
+    //             Some(_) => {}
+    //             None => match &query.ids {
+    //                 Some(_) => {}
+    //                 None => property_query = property_query.order_by(properties::id.desc()),
+    //             },
+    //         },
+    //     }
 
-        property_query
-            .inner_join(agents::table)
-            .left_join(developers::table)
-            .select((
-                properties::all_columns,
-                agents::all_columns,
-                developers::all_columns.nullable(),
-            ))
-            .get_results::<PropertyWithRelation>(conn)
-    }
+    //     property_query
+    //         .inner_join(agents::table)
+    //         .left_join(developers::table)
+    //         .select((
+    //             properties::all_columns,
+    //             agents::all_columns,
+    //             developers::all_columns.nullable(),
+    //         ))
+    //         .get_results::<PropertyWithRelation>(conn)
+    // }
 
-    pub fn count_find_many_rows(
-        pool: &DbPool,
-        user_id: &Option<uuid::Uuid>,
-        role: &Option<AgentRole>,
-        query: &FindPropertyQuery,
-    ) -> QueryResult<i64> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    // pub fn count_find_many_rows(
+    //     pool: &DbPool,
+    //     user_id: &Option<uuid::Uuid>,
+    //     role: &Option<AgentRole>,
+    //     query: &FindPropertyQuery,
+    // ) -> QueryResult<i64> {
+    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
 
-        let mut property_query = match role {
-            Some(role) => match role {
-                AgentRole::Admin => properties::table.into_boxed(),
-                AgentRole::Agent => properties::table
-                    .filter(
-                        properties::user_id
-                            .eq(user_id.unwrap())
-                            .and(properties::is_deleted.eq(false)),
-                    )
-                    .into_boxed(),
-            },
-            None => properties::table
-                .filter(
-                    properties::is_deleted
-                        .eq(false)
-                        .and(properties::sold_status.eq(SoldStatus::Available)),
-                )
-                .into_boxed(),
-        };
+    //     let mut property_query = match role {
+    //         Some(role) => match role {
+    //             AgentRole::Admin => properties::table.into_boxed(),
+    //             AgentRole::Agent => properties::table
+    //                 .filter(
+    //                     properties::user_id
+    //                         .eq(user_id.unwrap())
+    //                         .and(properties::is_deleted.eq(false)),
+    //                 )
+    //                 .into_boxed(),
+    //         },
+    //         None => properties::table
+    //             .filter(
+    //                 properties::is_deleted
+    //                     .eq(false)
+    //                     .and(properties::sold_status.eq(SoldStatus::Available)),
+    //             )
+    //             .into_boxed(),
+    //     };
 
-        if let Some(search_query) = &query.s {
-            match search_query.parse::<i32>() {
-                Ok(id) => property_query = property_query.filter(properties::id.eq(id)),
-                Err(_) => {
-                    property_query = property_query.filter(
-                        properties::title
-                            .ilike(format!("%{}", search_query))
-                            .or(properties::title.ilike(format!("%{}%", search_query)))
-                            .or(properties::title.ilike(format!("{}%", search_query)))
-                            .or(properties::street.ilike(format!("%{}", search_query)))
-                            .or(properties::street.ilike(format!("%{}%", search_query)))
-                            .or(properties::street.ilike(format!("{}%", search_query))),
-                    )
-                }
-            }
-        }
+    //     if let Some(search_query) = &query.s {
+    //         match search_query.parse::<i32>() {
+    //             Ok(id) => property_query = property_query.filter(properties::id.eq(id)),
+    //             Err(_) => {
+    //                 property_query = property_query.filter(
+    //                     properties::title
+    //                         .ilike(format!("%{}", search_query))
+    //                         .or(properties::title.ilike(format!("%{}%", search_query)))
+    //                         .or(properties::title.ilike(format!("{}%", search_query)))
+    //                         .or(properties::street.ilike(format!("%{}", search_query)))
+    //                         .or(properties::street.ilike(format!("%{}%", search_query)))
+    //                         .or(properties::street.ilike(format!("{}%", search_query))),
+    //                 )
+    //             }
+    //         }
+    //     }
 
-        if let Some(province_query) = &query.province {
-            property_query =
-                property_query.filter(properties::province.eq(province_query.to_lowercase()));
-        }
+    //     if let Some(province_query) = &query.province {
+    //         property_query =
+    //             property_query.filter(properties::province.eq(province_query.to_lowercase()));
+    //     }
 
-        if let Some(regency_query) = &query.regency {
-            property_query =
-                property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
-        }
+    //     if let Some(regency_query) = &query.regency {
+    //         property_query =
+    //             property_query.filter(properties::regency.eq(regency_query.to_lowercase()));
+    //     }
 
-        if let Some(street_query) = &query.street {
-            property_query =
-                property_query.filter(properties::street.eq(street_query.to_lowercase()));
-        }
+    //     if let Some(street_query) = &query.street {
+    //         property_query =
+    //             property_query.filter(properties::street.eq(street_query.to_lowercase()));
+    //     }
 
-        if let Some(is_popular) = &query.is_popular {
-            let filter_json = serde_json::json!({ "is_popular": is_popular});
-            property_query = property_query.filter(properties::configurations.contains(filter_json))
-        }
+    //     if let Some(is_popular) = &query.is_popular {
+    //         let filter_json = serde_json::json!({ "is_popular": is_popular});
+    //         property_query = property_query.filter(properties::configurations.contains(filter_json))
+    //     }
 
-        if let Some(is_prime) = &query.is_prime {
-            if *is_prime {
-                property_query = property_query.filter(properties::developer_id.is_not_null())
-            }
-        }
+    //     if let Some(is_prime) = &query.is_prime {
+    //         if *is_prime {
+    //             property_query = property_query.filter(properties::developer_id.is_not_null())
+    //         }
+    //     }
 
-        if let Some(sold_status) = &query.sold_status {
-            property_query = property_query.filter(properties::sold_status.eq(sold_status))
-        }
+    //     if let Some(sold_status) = &query.sold_status {
+    //         property_query = property_query.filter(properties::sold_status.eq(sold_status))
+    //     }
 
-        if let Some(purchase_status) = &query.purchase_status {
-            property_query = property_query.filter(
-                properties::purchase_status
-                    .eq(purchase_status)
-                    .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
-            )
-        }
+    //     if let Some(purchase_status) = &query.purchase_status {
+    //         property_query = property_query.filter(
+    //             properties::purchase_status
+    //                 .eq(purchase_status)
+    //                 .or(properties::purchase_status.eq(PurchaseStatus::ForSaleOrRent)),
+    //         )
+    //     }
 
-        if let Some(building_type) = &query.building_type {
-            property_query =
-                property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
-        }
+    //     if let Some(building_type) = &query.building_type {
+    //         property_query =
+    //             property_query.filter(properties::building_type.eq(building_type.to_lowercase()))
+    //     }
 
-        if let Some(dev_id) = &query.developer_id {
-            property_query = property_query.filter(properties::developer_id.eq(dev_id));
-        }
+    //     if let Some(dev_id) = &query.developer_id {
+    //         property_query = property_query.filter(properties::developer_id.eq(dev_id));
+    //     }
 
-        if let Some(bank_id) = &query.bank_id {
-            property_query = property_query.filter(properties::bank_id.eq(bank_id));
-        }
+    //     if let Some(bank_id) = &query.bank_id {
+    //         property_query = property_query.filter(properties::bank_id.eq(bank_id));
+    //     }
 
-        property_query.count().get_result(conn)
-    }
+    //     property_query.count().get_result(conn)
+    // }
 }
 
 diesel::define_sql_function! {

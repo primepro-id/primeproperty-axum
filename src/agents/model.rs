@@ -46,7 +46,7 @@ impl Agent {
             .get_result(conn)
     }
 
-    pub(super) fn find_unique(pool: &DbPool, id: &uuid::Uuid) -> QueryResult<Self> {
+    pub fn find_unique(pool: &DbPool, id: &uuid::Uuid) -> QueryResult<Self> {
         let conn = &mut match pool.get() {
             Ok(conn) => conn,
             Err(e) => return Err(Self::to_diesel_error(e)),

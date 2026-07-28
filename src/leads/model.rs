@@ -1,11 +1,12 @@
-use super::controller::{CreateLeadPayload, FindLeadQueryParam, PAGE_SIZE};
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, QueryResult,
-    Queryable, RunQueryDsl,
-};
+use super::controller::CreateLeadSqlPayload;
+use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
 use serde::Serialize;
 
-use crate::{agents::AgentRole, db::DbPool, schema::leads};
+use crate::{
+    agents::AgentRole,
+    db::{DbPool, DbPoolExt},
+    schema,
+};
 
 #[derive(Serialize, Queryable)]
 pub struct Lead {
@@ -20,97 +21,61 @@ pub struct Lead {
     is_deleted: bool,
 }
 
+impl DbPoolExt for Lead {}
+
 impl Lead {
     pub fn delete_by_property_id(pool: &DbPool, property_id: &i32) -> QueryResult<Self> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
 
-        diesel::update(leads::table)
-            .filter(leads::property_id.eq(property_id))
-            .set(leads::is_deleted.eq(true))
+        diesel::update(schema::leads::table)
+            .filter(schema::leads::property_id.eq(property_id))
+            .set(schema::leads::is_deleted.eq(true))
             .get_result(conn)
     }
 
-    pub fn create(
-        pool: &DbPool,
-        #[allow(unused_variables)] uuid: &uuid::Uuid,
-        payload: &CreateLeadPayload,
-    ) -> QueryResult<Lead> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    pub(super) fn create(pool: &DbPool, payload: &CreateLeadSqlPayload) -> QueryResult<Lead> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
 
-        diesel::insert_into(leads::table)
+        diesel::insert_into(schema::leads::table)
             .values(payload)
             .get_result(conn)
     }
 
-    pub fn find_many(
-        pool: &DbPool,
-        user_id_option: &Option<uuid::Uuid>,
-        role_option: &Option<crate::agents::AgentRole>,
-        query_params: &FindLeadQueryParam,
-    ) -> QueryResult<Vec<Lead>> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-
-        let mut lead_query = match (user_id_option, role_option) {
-            (Some(user_id), Some(role)) => match role {
-                &AgentRole::Admin => leads::table.into_boxed(),
-                &AgentRole::Agent => leads::table
-                    .filter(leads::user_id.eq(user_id).and(leads::is_deleted.eq(false)))
-                    .into_boxed(),
-            },
-            _ => return Err(diesel::result::Error::NotFound),
+    pub fn find(pool: &DbPool, role: &AgentRole, agent_id: &uuid::Uuid) -> QueryResult<Vec<Lead>> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
         };
 
-        if let Some(search) = &query_params.search {
-            lead_query = lead_query.filter(
-                leads::name
-                    .ilike(format!("%{}", search))
-                    .or(leads::name.ilike(format!("%{}%", search)))
-                    .or(leads::name.ilike(format!("{}%", search)))
-                    .or(leads::phone.ilike(format!("%{}", search)))
-                    .or(leads::phone.ilike(format!("%{}%", search)))
-                    .or(leads::phone.ilike(format!("{}%", search))),
-            )
+        match role {
+            AgentRole::Admin => schema::leads::table
+                .order_by(schema::leads::created_at.desc())
+                .get_results(conn),
+            AgentRole::Agent => schema::leads::table
+                .filter(schema::leads::user_id.eq(agent_id))
+                .order_by(schema::leads::created_at.desc())
+                .get_results(conn),
         }
-
-        if let Some(page) = query_params.page {
-            lead_query = lead_query.offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
-        }
-
-        lead_query
-            .order_by(leads::created_at.desc())
-            .get_results(conn)
     }
 
-    pub fn count_find_many_rows(
-        pool: &DbPool,
-        user_id_option: &Option<uuid::Uuid>,
-        role_option: &Option<crate::agents::AgentRole>,
-        query_params: &FindLeadQueryParam,
-    ) -> QueryResult<i64> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-
-        let mut lead_query = match (user_id_option, role_option) {
-            (Some(user_id), Some(role)) => match role {
-                &AgentRole::Admin => leads::table.into_boxed(),
-                &AgentRole::Agent => leads::table
-                    .filter(leads::user_id.eq(user_id).and(leads::is_deleted.eq(false)))
-                    .into_boxed(),
-            },
-            _ => return Err(diesel::result::Error::NotFound),
+    pub fn count(pool: &DbPool, role: &AgentRole, agent_id: &uuid::Uuid) -> QueryResult<i64> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
         };
 
-        if let Some(search) = &query_params.search {
-            lead_query = lead_query.filter(
-                leads::name
-                    .ilike(format!("%{}", search))
-                    .or(leads::name.ilike(format!("%{}%", search)))
-                    .or(leads::name.ilike(format!("{}%", search)))
-                    .or(leads::phone.ilike(format!("%{}", search)))
-                    .or(leads::phone.ilike(format!("%{}%", search)))
-                    .or(leads::phone.ilike(format!("{}%", search))),
-            )
+        match role {
+            AgentRole::Admin => schema::leads::table.count().get_result(conn),
+            AgentRole::Agent => schema::leads::table
+                .filter(schema::leads::user_id.eq(agent_id))
+                .count()
+                .get_result(conn),
         }
-
-        lead_query.count().get_result(conn)
     }
 }

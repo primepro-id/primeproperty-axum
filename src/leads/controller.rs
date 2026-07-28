@@ -1,19 +1,40 @@
+use super::model::Lead;
 use crate::agents::Agent;
-use crate::middleware::{JsonFindResponse, JsonResponse, Session};
+use crate::middleware::{DataAndPagination, JsonResponse, Pagination, RequestMiddleware};
 use crate::properties::Property;
 use crate::{db::DbPool, middleware::AxumResponse, schema};
-use axum::extract::{Json, Query, State};
+use axum::extract::{Json, State};
 use axum::http::HeaderMap;
+use axum::middleware::from_fn;
 use axum::routing::{get, post};
 use axum::Router;
 use diesel::prelude::Insertable;
+use reqwest::StatusCode;
 use serde::Deserialize;
 
-use super::model::Lead;
+#[derive(Deserialize)]
+pub struct CreateLeadPayload {
+    property_id: i32,
+    name: String,
+    phone: String,
+    email: Option<String>,
+}
+
+impl CreateLeadPayload {
+    fn into_sql_payload(self, user_id: &uuid::Uuid) -> CreateLeadSqlPayload {
+        CreateLeadSqlPayload {
+            user_id: user_id.to_owned(),
+            property_id: self.property_id,
+            name: self.name,
+            phone: self.phone,
+            email: self.email,
+        }
+    }
+}
 
 #[derive(Deserialize, Insertable)]
 #[diesel(table_name = schema::leads)]
-pub struct CreateLeadPayload {
+pub(super) struct CreateLeadSqlPayload {
     user_id: uuid::Uuid,
     property_id: i32,
     name: String,
@@ -21,77 +42,82 @@ pub struct CreateLeadPayload {
     email: Option<String>,
 }
 
-async fn create_lead(
+async fn create(
     State(pool): State<DbPool>,
-    headers: HeaderMap,
     Json(payload): Json<CreateLeadPayload>,
 ) -> AxumResponse<Lead> {
-    let api_key_option = headers.get("x-api-key");
-
-    let api_key = match api_key_option {
-        Some(key) => key.to_str().unwrap_or(""),
-        None => return JsonResponse::send(401, None, None),
+    let property = match Property::find_unique(&pool, &payload.property_id) {
+        Ok(p) => p,
+        Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
     };
 
-    let leads_api_key = std::env::var("API_KEY_LEADS").expect("Missing API_KEY_LEADS");
-
-    if api_key != leads_api_key {
-        return JsonResponse::send(401, None, None);
-    }
-
-    let property = match Property::find_one_by_id(&pool, &payload.property_id) {
-        Ok(property) if property.0.user_id == payload.user_id => property,
-        _ => return JsonResponse::send(400, None, None),
-    };
-    match Lead::create(&pool, &property.0.user_id, &payload) {
-        Ok(lead) => JsonResponse::send(201, Some(lead), None),
-        Err(err) => JsonResponse::send(500, None, Some(err.to_string())),
+    let sql_payload = payload.into_sql_payload(&property.user_id);
+    match Lead::create(&pool, &sql_payload) {
+        Ok(lead) => JsonResponse::send(StatusCode::CREATED, Some(lead), None),
+        Err(err) => JsonResponse::send(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            None,
+            Some(err.to_string()),
+        ),
     }
 }
 
-pub(super) const PAGE_SIZE: i64 = 20;
-
-#[derive(Deserialize)]
-pub struct FindLeadQueryParam {
-    pub search: Option<String>,
-    pub page: Option<i64>,
-}
-
-async fn find_many_leads(
+async fn find(
     State(pool): State<DbPool>,
     headers: HeaderMap,
-    Query(query_params): Query<FindLeadQueryParam>,
-) -> AxumResponse<JsonFindResponse<Vec<Lead>>> {
-    let user_id = Session::extract_session_user_id(&headers);
-
-    let role = match Agent::find_by_user_id(&pool, &user_id) {
-        Ok(agent) => Some(agent.role),
-        _ => {
-            return JsonResponse::send(403, None, None);
+) -> AxumResponse<DataAndPagination<Vec<Lead>>> {
+    let session_user_id = match RequestMiddleware::get_user_uuid(&headers) {
+        Some(id) => id,
+        None => {
+            return JsonResponse::send(
+                StatusCode::UNAUTHORIZED,
+                None,
+                Some("Unauthorized".to_string()),
+            )
         }
     };
 
-    let leads = match Lead::find_many(&pool, &Some(user_id), &role, &query_params) {
-        Ok(leads_vec) => leads_vec,
-        Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
+    let session_agent = match Agent::find_unique(&pool, &session_user_id) {
+        Ok(agent) => agent,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
     };
 
-    let leads_count = match Lead::count_find_many_rows(&pool, &Some(user_id), &role, &query_params)
-    {
-        Ok(count) => count,
-        Err(err) => return JsonResponse::send(500, None, Some(err.to_string())),
+    let leads = match Lead::find(&pool, &session_agent.role, &session_agent.id) {
+        Ok(l) => l,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            )
+        }
     };
 
-    let body = JsonFindResponse {
-        data: leads,
-        total_pages: (leads_count / PAGE_SIZE) + 1,
-        total_data: leads_count,
+    let leads_count = match Lead::count(&pool, &session_agent.role, &session_agent.id) {
+        Ok(c) => c,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            )
+        }
     };
-    JsonResponse::send(200, Some(body), None)
+
+    let pagination = Pagination::new(None, Some(leads_count as u32), leads_count as u32);
+    let data = DataAndPagination::new(Some(leads), pagination);
+
+    JsonResponse::send(StatusCode::OK, Some(data), None)
 }
 
-pub fn lead_routes() -> Router<DbPool> {
-    Router::new()
-        .route("/", post(create_lead))
-        .route("/", get(find_many_leads))
+pub fn routes() -> Router<DbPool> {
+    let public_routes = Router::new().route("/", post(create));
+
+    let session_routes = Router::new()
+        .route("/", get(find))
+        .layer(from_fn(RequestMiddleware::check_session));
+
+    public_routes.merge(session_routes)
 }
