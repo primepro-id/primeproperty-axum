@@ -1,9 +1,19 @@
 use super::model::Developer;
 use crate::db::DbPool;
-use crate::middleware::{AxumResponse, DataAndPagination, JsonResponse, Pagination};
-use axum::extract::Path;
-use axum::{extract::State, routing::get, Router};
+use crate::middleware::{
+    AxumResponse, DataAndPagination, JsonResponse, Pagination, RequestMiddleware,
+};
+use crate::schema;
+use axum::middleware::from_fn;
+use axum::routing::post;
+use axum::{
+    extract::{Json, Path, State},
+    routing::get,
+    Router,
+};
+use diesel::prelude::Insertable;
 use reqwest::StatusCode;
+use serde::Deserialize;
 
 pub(super) async fn find(
     State(pool): State<DbPool>,
@@ -55,8 +65,35 @@ pub(super) async fn find_unique(
     }
 }
 
+#[derive(Deserialize, Insertable)]
+#[diesel(table_name = schema::developers)]
+pub(super) struct CreateDeveloperPayload {
+    logo_path: String,
+    name: String,
+}
+
+pub(super) async fn create(
+    State(pool): State<DbPool>,
+    Json(payload): Json<CreateDeveloperPayload>,
+) -> AxumResponse<Developer> {
+    match Developer::create(&pool, &payload) {
+        Ok(d) => JsonResponse::send(StatusCode::OK, Some(d), None),
+        Err(err) => JsonResponse::send(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            None,
+            Some(err.to_string()),
+        ),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
-    axum::Router::new()
+    let public_routes = axum::Router::new()
         .route("/", get(find))
-        .route("/{id}", get(find_unique))
+        .route("/{id}", get(find_unique));
+
+    let admin_routes = Router::new()
+        .route("/", post(create))
+        .layer(from_fn(RequestMiddleware::check_admin));
+
+    public_routes.merge(admin_routes)
 }

@@ -1,8 +1,8 @@
 use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
 use serde::Serialize;
 
+use super::controller::CreateDeveloperPayload;
 use crate::db::{DbPool, DbPoolExt};
-// use crate::developers::controller::{CreateDeveloperPayload, UpdateDeveloperPayload};
 use crate::schema;
 
 #[derive(Debug, Serialize, Queryable, Clone)]
@@ -44,12 +44,15 @@ impl Developer {
         schema::developers::table.find(&id).get_result(conn)
     }
 
-    // pub(super) fn create(pool: &DbPool, payload: &CreateDeveloperPayload) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::insert_into(schema::developers::table)
-    //         .values(payload)
-    //         .get_result(conn)
-    // }
+    pub(super) fn create(pool: &DbPool, payload: &CreateDeveloperPayload) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+        diesel::insert_into(schema::developers::table)
+            .values(payload)
+            .get_result(conn)
+    }
 
     // pub(super) fn update(
     //     pool: &DbPool,
