@@ -1,3 +1,4 @@
+use super::property_relation::PropertyJoinAgent;
 use super::{
     // controllers::{
     //     CreateUpdatePropertySqlPayload, FindPropertyQuery, FindPropertySort, PropertyWithRelation,
@@ -8,10 +9,10 @@ use super::{
         SoldStatus,
     },
 };
+use crate::db::DbPoolExt;
 use crate::{
-    agents::AgentRole,
     db::DbPool,
-    schema::{agents, developers, properties},
+    schema::{agents, properties},
 };
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, PgJsonbExpressionMethods,
@@ -54,19 +55,28 @@ pub struct Property {
     bank_id: Option<i32>,
 }
 
+impl DbPoolExt for Property {}
+
 impl Property {
     pub fn find_unique(pool: &DbPool, id: &i32) -> QueryResult<Property> {
-        let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        properties::table.find(id).get_result(conn)
+    }
+
+    pub fn find_unique_join_agent(pool: &DbPool, id: &i32) -> QueryResult<PropertyJoinAgent> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
 
         properties::table
             .find(id)
-            // .inner_join(agents::table)
-            // .left_join(developers::table)
-            // .select((
-            //     properties::all_columns,
-            //     agents::all_columns,
-            //     developers::all_columns.nullable(),
-            // ))
+            .inner_join(agents::table)
+            .select((properties::all_columns, agents::all_columns))
             .get_result(conn)
     }
 

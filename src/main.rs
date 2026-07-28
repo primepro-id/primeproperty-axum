@@ -74,7 +74,7 @@ async fn main() {
         .nest("/banks", banks::routes())
         .nest("/developers", developers::routes())
         .nest("/leads", leads::routes())
-        // .nest("/properties", properties::property_routes())
+        .nest("/properties", properties::routes())
         .nest("/s3", s3::routes())
         .with_state(pool)
         .layer(cors)
