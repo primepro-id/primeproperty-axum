@@ -5,13 +5,13 @@ use crate::middleware::{
 };
 use crate::schema;
 use axum::middleware::from_fn;
-use axum::routing::post;
 use axum::{
     extract::{Json, Path, State},
-    routing::get,
+    routing::{delete, get, post, put},
     Router,
 };
 use diesel::prelude::Insertable;
+use diesel::query_builder::AsChangeset;
 use reqwest::StatusCode;
 use serde::Deserialize;
 
@@ -86,6 +86,50 @@ pub(super) async fn create(
     }
 }
 
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = schema::developers)]
+pub(super) struct UpdateDeveloperPayload {
+    logo_path: String,
+    name: String,
+}
+
+pub(super) async fn update(
+    State(pool): State<DbPool>,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdateDeveloperPayload>,
+) -> AxumResponse<Developer> {
+    let num_id = match id.parse::<i32>() {
+        Ok(num_id) => num_id,
+        Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
+    };
+    match Developer::update(&pool, &num_id, &payload) {
+        Ok(d) => JsonResponse::send(StatusCode::OK, Some(d), None),
+        Err(err) => JsonResponse::send(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            None,
+            Some(err.to_string()),
+        ),
+    }
+}
+
+pub(super) async fn remove(
+    State(pool): State<DbPool>,
+    Path(id): Path<String>,
+) -> AxumResponse<Developer> {
+    let num_id = match id.parse::<i32>() {
+        Ok(num_id) => num_id,
+        Err(e) => return JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
+    };
+    match Developer::remove(&pool, &num_id) {
+        Ok(d) => JsonResponse::send(StatusCode::OK, Some(d), None),
+        Err(err) => JsonResponse::send(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            None,
+            Some(err.to_string()),
+        ),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     let public_routes = axum::Router::new()
         .route("/", get(find))
@@ -93,6 +137,8 @@ pub fn routes() -> Router<DbPool> {
 
     let admin_routes = Router::new()
         .route("/", post(create))
+        .route("/{id}", put(update))
+        .route("/{id}", delete(remove))
         .layer(from_fn(RequestMiddleware::check_admin));
 
     public_routes.merge(admin_routes)

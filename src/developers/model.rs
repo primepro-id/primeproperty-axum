@@ -1,7 +1,7 @@
 use diesel::{ExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl};
 use serde::Serialize;
 
-use super::controller::CreateDeveloperPayload;
+use super::controller::{CreateDeveloperPayload, UpdateDeveloperPayload};
 use crate::db::{DbPool, DbPoolExt};
 use crate::schema;
 
@@ -54,22 +54,28 @@ impl Developer {
             .get_result(conn)
     }
 
-    // pub(super) fn update(
-    //     pool: &DbPool,
-    //     id: &i32,
-    //     payload: &UpdateDeveloperPayload,
-    // ) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::update(schema::developers::table)
-    //         .filter(schema::developers::id.eq(id))
-    //         .set(payload)
-    //         .get_result(conn)
-    // }
+    pub(super) fn update(
+        pool: &DbPool,
+        id: &i32,
+        payload: &UpdateDeveloperPayload,
+    ) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+        diesel::update(schema::developers::table)
+            .filter(schema::developers::id.eq(id))
+            .set(payload)
+            .get_result(conn)
+    }
 
-    // pub(super) fn delete(pool: &DbPool, id: &i32) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-    //     diesel::delete(schema::developers::table)
-    //         .filter(schema::developers::id.eq(id))
-    //         .get_result(conn)
-    // }
+    pub(super) fn remove(pool: &DbPool, id: &i32) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+        diesel::delete(schema::developers::table)
+            .filter(schema::developers::id.eq(id))
+            .get_result(conn)
+    }
 }
