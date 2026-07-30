@@ -1,13 +1,10 @@
-use super::property_relation::PropertyJoinAgent;
 use super::{
-    // controllers::{
-    //     CreateUpdatePropertySqlPayload, FindPropertyQuery, FindPropertySort, PropertyWithRelation,
-    //     UpdateConfigurationsSqlPayload,
-    // },
+    controllers_new::{FindQuery, FindQuerySort},
     enumerates::{
         BuildingCondition, Currency, FurnitureCapacity, PurchaseStatus, RentTime, SoldChannel,
         SoldStatus,
     },
+    property_relation::PropertyJoinAgent,
 };
 use crate::db::DbPoolExt;
 use crate::{
@@ -78,6 +75,168 @@ impl Property {
             .inner_join(agents::table)
             .select((properties::all_columns, agents::all_columns))
             .get_result(conn)
+    }
+
+    pub fn find(pool: &DbPool, query: &FindQuery) -> QueryResult<Vec<PropertyJoinAgent>> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        let mut property_query = properties::table
+            .filter(properties::is_deleted.eq(false))
+            .into_boxed();
+
+        if let Some(id) = &query.id {
+            if let Some(is_related) = &query.is_related {
+                if is_related.to_owned() {
+                    property_query = property_query.filter(properties::id.ne(id))
+                }
+            } else {
+                property_query = property_query.filter(properties::id.eq(id))
+            }
+        }
+
+        if let Some(agent_id) = &query.agent_id {
+            property_query = property_query.filter(properties::user_id.eq(agent_id));
+        }
+        if let Some(province) = &query.province {
+            property_query = property_query.filter(properties::province.eq(province));
+        }
+        if let Some(regency) = &query.regency {
+            property_query = property_query.filter(properties::regency.eq(regency));
+        }
+        if let Some(street) = &query.street {
+            property_query = property_query.filter(properties::street.eq(street));
+        }
+        if let Some(purchase_status) = &query.purchase_status {
+            property_query = property_query.filter(properties::purchase_status.eq(purchase_status));
+        }
+        if let Some(sold_status) = &query.sold_status {
+            property_query = property_query.filter(properties::sold_status.eq(sold_status));
+        }
+        if let Some(building_type) = &query.building_type {
+            property_query = property_query.filter(properties::building_type.eq(building_type));
+        }
+        if let Some(building_condition) = &query.building_condition {
+            property_query =
+                property_query.filter(properties::building_condition.eq(building_condition));
+        }
+        if let Some(keyword) = &query.keyword {
+            property_query =
+                property_query.filter(similarity(properties::site_path, keyword).gt(0.1));
+        }
+
+        if let Some(is_popular) = &query.is_popular {
+            let filter_json = serde_json::json!({ "is_popular": is_popular});
+            property_query = property_query.filter(properties::configurations.contains(filter_json))
+        }
+
+        if let Some(is_prime) = &query.is_prime {
+            if is_prime.to_owned() {
+                property_query = property_query.filter(properties::developer_id.is_not_null())
+            }
+        }
+
+        match (&query.limit, &query.page) {
+            (Some(limit), Some(page)) => {
+                let offset = (page - 1) * limit;
+                property_query = property_query.offset(offset).limit(limit.to_owned());
+            }
+            (Some(limit), None) => {
+                property_query = property_query.limit(limit.to_owned());
+            }
+            _ => {}
+        }
+
+        match &query.sort {
+            Some(sort) => match sort {
+                FindQuerySort::LowestPrice => {
+                    property_query = property_query.order_by(properties::price.asc())
+                }
+                FindQuerySort::HighestPrice => {
+                    property_query = property_query.order_by(properties::price.desc())
+                }
+            },
+            None => match &query.keyword {
+                Some(keyword) => {
+                    property_query = property_query.order_by((
+                        properties::site_path,
+                        similarity(properties::site_path, keyword).desc(),
+                    ))
+                }
+                None => property_query = property_query.order_by(properties::created_at.desc()),
+            },
+        }
+
+        property_query
+            .inner_join(agents::table)
+            .select((properties::all_columns, agents::all_columns))
+            .get_results::<PropertyJoinAgent>(conn)
+    }
+
+    pub fn count(pool: &DbPool, query: &FindQuery) -> QueryResult<i64> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        let mut property_query = properties::table
+            .filter(properties::is_deleted.eq(false))
+            .into_boxed();
+
+        if let Some(id) = &query.id {
+            if let Some(is_related) = &query.is_related {
+                if is_related.to_owned() {
+                    property_query = property_query.filter(properties::id.ne(id))
+                }
+            } else {
+                property_query = property_query.filter(properties::id.eq(id))
+            }
+        }
+
+        if let Some(agent_id) = &query.agent_id {
+            property_query = property_query.filter(properties::user_id.eq(agent_id));
+        }
+        if let Some(province) = &query.province {
+            property_query = property_query.filter(properties::province.eq(province));
+        }
+        if let Some(regency) = &query.regency {
+            property_query = property_query.filter(properties::regency.eq(regency));
+        }
+        if let Some(street) = &query.street {
+            property_query = property_query.filter(properties::street.eq(street));
+        }
+        if let Some(purchase_status) = &query.purchase_status {
+            property_query = property_query.filter(properties::purchase_status.eq(purchase_status));
+        }
+        if let Some(sold_status) = &query.sold_status {
+            property_query = property_query.filter(properties::sold_status.eq(sold_status));
+        }
+        if let Some(building_type) = &query.building_type {
+            property_query = property_query.filter(properties::building_type.eq(building_type));
+        }
+        if let Some(building_condition) = &query.building_condition {
+            property_query =
+                property_query.filter(properties::building_condition.eq(building_condition));
+        }
+        if let Some(keyword) = &query.keyword {
+            property_query =
+                property_query.filter(similarity(properties::site_path, keyword).gt(0.1));
+        }
+
+        if let Some(is_popular) = &query.is_popular {
+            let filter_json = serde_json::json!({ "is_popular": is_popular});
+            property_query = property_query.filter(properties::configurations.contains(filter_json))
+        }
+
+        if let Some(is_prime) = &query.is_prime {
+            if is_prime.to_owned() {
+                property_query = property_query.filter(properties::developer_id.is_not_null())
+            }
+        }
+
+        property_query.count().get_result(conn)
     }
 
     // pub(super) fn update(
