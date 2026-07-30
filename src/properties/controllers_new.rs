@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use super::property_relation::PropertyJoinAgent;
 use super::Property;
 use crate::{
@@ -90,10 +92,72 @@ async fn find_join_agent(
     JsonResponse::send(StatusCode::OK, Some(data), None)
 }
 
+pub async fn find_site_paths(State(pool): State<DbPool>) -> AxumResponse<Vec<String>> {
+    let distinct_properties = match Property::find_distinct_site_paths(&pool) {
+        Ok(properties) => properties,
+        Err(err) => {
+            return JsonResponse::send(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some(err.to_string()),
+            );
+        }
+    };
+
+    let slugify = |s: &str| s.to_lowercase().replace(' ', "-");
+    let statuses = [
+        PurchaseStatus::ForSale.to_slug(),
+        PurchaseStatus::ForRent.to_slug(),
+    ];
+
+    // Base paths: /for-sale, /for-rent
+    let mut site_paths = statuses.iter().map(|s| format!("/{s}")).collect::<Vec<_>>();
+
+    // Extract unique slugs using sets
+    let mut building_types = HashSet::new();
+    let mut provinces = HashSet::new();
+    let mut regencies = HashSet::new();
+    let mut streets = HashSet::new();
+
+    for property in distinct_properties {
+        building_types.insert(slugify(&property.building_type));
+        provinces.insert(slugify(&property.province));
+        regencies.insert(slugify(&property.regency));
+        streets.insert(slugify(&property.street));
+    }
+
+    // Generate paths for each status combination
+    for status in &statuses {
+        // Status + Building Type
+        for b_type in &building_types {
+            site_paths.push(format!("/{status}/{b_type}"));
+
+            // Status + Building Type + Province
+            for province in &provinces {
+                site_paths.push(format!("/{status}/{b_type}/{province}"));
+
+                // Status + Building Type + Province + Regency
+                for regency in &regencies {
+                    site_paths.push(format!("/{status}/{b_type}/{province}/{regency}"));
+
+                    // Status + Building Type + Province + Regency + Street
+                    for street in &streets {
+                        site_paths
+                            .push(format!("/{status}/{b_type}/{province}/{regency}/{street}"));
+                    }
+                }
+            }
+        }
+    }
+
+    JsonResponse::send(StatusCode::OK, Some(site_paths), None)
+}
+
 pub fn routes() -> Router<DbPool> {
     Router::new()
-        .route("/{id}/agents", get(find_unique_join_agent))
-        .route("/agents", get(find_join_agent))
+        .route("/{id}/join-agents", get(find_unique_join_agent))
+        .route("/join-agents", get(find_join_agent))
+        .route("/site-paths", get(find_site_paths))
     // let session_routes = Router::new()
     //     .route("/", get(find))
     //     .layer(from_fn(RequestMiddleware::check_session));

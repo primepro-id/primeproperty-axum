@@ -26,16 +26,16 @@ pub struct Property {
     site_path: String,
     title: String,
     description: String,
-    province: String,
-    regency: String,
-    street: String,
+    pub province: String,
+    pub regency: String,
+    pub street: String,
     gmap_iframe: Option<String>,
     price: i64,
     images: serde_json::Value,
     purchase_status: PurchaseStatus,
     sold_status: SoldStatus,
     measurements: serde_json::Value,
-    building_type: String,
+    pub building_type: String,
     building_condition: BuildingCondition,
     building_furniture_capacity: Option<FurnitureCapacity>,
     building_certificate: String,
@@ -237,6 +237,18 @@ impl Property {
         }
 
         property_query.count().get_result(conn)
+    }
+
+    pub fn find_distinct_site_paths(pool: &DbPool) -> QueryResult<Vec<Property>> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
+
+        properties::table
+            .distinct_on(properties::site_path)
+            .order(properties::site_path.asc())
+            .get_results(conn)
     }
 
     // pub(super) fn update(
