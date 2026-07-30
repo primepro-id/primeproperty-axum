@@ -1,6 +1,7 @@
 // mod controllers;
 mod controllers_new;
 mod enumerates;
+mod json_model;
 mod model;
 mod property_relation;
 
