@@ -4,7 +4,9 @@ use super::enumerates::{
 use super::json_model::{Configurations, Facility, Image, Measurement, Specifications};
 use super::property_relation::PropertyJoinAgent;
 use super::Property;
+use crate::agents::{Agent, AgentRole};
 use crate::middleware::RequestMiddleware;
+use crate::properties::enumerates::SoldChannel;
 use crate::{
     db::DbPool,
     middleware::{AxumResponse, DataAndPagination, JsonResponse, Pagination},
@@ -14,10 +16,11 @@ use axum::http::HeaderMap;
 use axum::middleware::from_fn;
 use axum::{
     extract::{Json, Path, Query, State},
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use diesel::prelude::Insertable;
+use diesel::query_builder::AsChangeset;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -222,10 +225,20 @@ pub struct CreatePropertyPayload {
 
 impl CreatePropertyPayload {
     pub fn into_sql_payload(self, user_id: uuid::Uuid) -> CreatePropertySqlPayload {
+        let purchase = match self.purchase_status {
+            PurchaseStatus::ForSale => "dijual",
+            PurchaseStatus::ForRent => "disewa",
+            PurchaseStatus::ForSaleOrRent => "dijual-disewa",
+        };
+        let site_path = format!(
+            "/{}/{}/{}/{}/{}",
+            purchase, self.building_type, self.province, self.regency, self.street
+        );
         let default_json_object = serde_json::Value::Object(serde_json::Map::new());
         let default_json_array = serde_json::Value::Array(Vec::new());
         CreatePropertySqlPayload {
             user_id,
+            site_path: site_path.replace(" ", "-"),
             title: self.title,
             description: self.description,
             province: self.province,
@@ -257,6 +270,7 @@ impl CreatePropertyPayload {
 #[diesel(table_name = schema::properties)]
 pub struct CreatePropertySqlPayload {
     user_id: uuid::Uuid,
+    site_path: String,
     title: String,
     description: String,
     province: String,
@@ -302,6 +316,249 @@ async fn create(
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdatePropertyPayload {
+    title: Option<String>,
+    description: Option<String>,
+    province: Option<String>,
+    regency: Option<String>,
+    street: Option<String>,
+    gmap_iframe: Option<String>,
+    price: Option<i64>,
+    images: Option<Vec<Image>>,
+    purchase_status: Option<PurchaseStatus>,
+    sold_status: Option<SoldStatus>,
+    measurements: Option<Measurement>,
+    building_type: Option<String>,
+    building_condition: Option<BuildingCondition>,
+    building_furniture_capacity: Option<FurnitureCapacity>,
+    building_certificate: Option<String>,
+    specifications: Option<Specifications>,
+    facilities: Option<Vec<Facility>>,
+    sold_channel: Option<SoldChannel>,
+    configurations: Option<Configurations>,
+    currency: Option<Currency>,
+    rent_time: Option<RentTime>,
+    price_down_payment: Option<i64>,
+}
+
+impl UpdatePropertyPayload {
+    pub fn into_sql_payload(self, old_property: &Property) -> UpdatePropertySqlPayload {
+        let purchase = match &self.purchase_status {
+            Some(status) => match status {
+                PurchaseStatus::ForSale => "dijual",
+                PurchaseStatus::ForRent => "disewa",
+                PurchaseStatus::ForSaleOrRent => "dijual-dan-disewa",
+            },
+            None => old_property.purchase_status.to_slug(),
+        };
+        let building_type = match &self.building_type {
+            Some(ty) => ty,
+            None => &old_property.building_type,
+        };
+        let province = match &self.province {
+            Some(p) => p,
+            None => &old_property.province,
+        };
+        let regency = match &self.regency {
+            Some(r) => r,
+            None => &old_property.regency,
+        };
+        let street = match &self.street {
+            Some(s) => s,
+            None => &old_property.street,
+        };
+
+        let site_path = format!(
+            "/{}/{}/{}/{}/{}",
+            purchase, building_type, province, regency, street
+        );
+        let default_json_object = serde_json::Value::Object(serde_json::Map::new());
+        let default_json_array = serde_json::Value::Array(Vec::new());
+
+        let images = match self.images {
+            Some(images) => {
+                Some(serde_json::to_value(images).unwrap_or(default_json_array.clone()))
+            }
+            None => None,
+        };
+
+        let measure = match self.measurements {
+            Some(m) => Some(serde_json::to_value(m).unwrap_or(default_json_object.clone())),
+            None => None,
+        };
+
+        let spec = match self.specifications {
+            Some(s) => Some(serde_json::to_value(s).unwrap_or(default_json_object.clone())),
+            None => None,
+        };
+
+        let facil = match self.facilities {
+            Some(f) => Some(serde_json::to_value(f).unwrap_or(default_json_array.clone())),
+            None => None,
+        };
+
+        let config = match self.configurations {
+            Some(c) => Some(serde_json::to_value(c).unwrap_or(default_json_object.clone())),
+            None => None,
+        };
+
+        UpdatePropertySqlPayload {
+            site_path: Some(site_path),
+            title: self.title,
+            description: self.description,
+            province: self.province,
+            regency: self.regency,
+            street: self.street,
+            gmap_iframe: self.gmap_iframe,
+            price: self.price,
+            images,
+            purchase_status: self.purchase_status,
+            sold_status: self.sold_status,
+            measurements: measure,
+            building_type: self.building_type,
+            building_condition: self.building_condition,
+            building_furniture_capacity: self.building_furniture_capacity,
+            building_certificate: self.building_certificate,
+            specifications: spec,
+            facilities: facil,
+            sold_channel: self.sold_channel,
+            configurations: config,
+            currency: self.currency,
+            rent_time: self.rent_time,
+            price_down_payment: self.price_down_payment,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, AsChangeset)]
+#[diesel(table_name = schema::properties)]
+pub struct UpdatePropertySqlPayload {
+    site_path: Option<String>,
+    title: Option<String>,
+    description: Option<String>,
+    province: Option<String>,
+    regency: Option<String>,
+    street: Option<String>,
+    gmap_iframe: Option<String>,
+    price: Option<i64>,
+    images: Option<serde_json::Value>,
+    purchase_status: Option<PurchaseStatus>,
+    sold_status: Option<SoldStatus>,
+    measurements: Option<serde_json::Value>,
+    building_type: Option<String>,
+    building_condition: Option<BuildingCondition>,
+    building_furniture_capacity: Option<FurnitureCapacity>,
+    building_certificate: Option<String>,
+    specifications: Option<serde_json::Value>,
+    facilities: Option<serde_json::Value>,
+    sold_channel: Option<SoldChannel>,
+    configurations: Option<serde_json::Value>,
+    currency: Option<Currency>,
+    rent_time: Option<RentTime>,
+    price_down_payment: Option<i64>,
+}
+
+async fn update(
+    State(pool): State<DbPool>,
+    headers: HeaderMap,
+    Path(id): Path<i32>,
+    Json(payload): Json<UpdatePropertyPayload>,
+) -> AxumResponse<Property> {
+    let session_user_id = match RequestMiddleware::get_user_uuid(&headers) {
+        Some(id) => id,
+        None => {
+            return JsonResponse::send(
+                StatusCode::UNAUTHORIZED,
+                None,
+                Some("Unauthorized".to_string()),
+            )
+        }
+    };
+
+    let target_property = match Property::find_unique(&pool, &id) {
+        Ok(property) => property,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    let session_agent = match Agent::find_unique(&pool, &target_property.user_id) {
+        Ok(agent) => agent,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    if session_user_id != target_property.user_id {
+        match session_agent.role {
+            AgentRole::Admin => (),
+            _ => {
+                return JsonResponse::send(
+                    StatusCode::FORBIDDEN,
+                    None,
+                    Some("Forbidden".to_string()),
+                )
+            }
+        }
+    }
+
+    let sql_payload = payload.into_sql_payload(&target_property);
+    match Property::update(&pool, &id, &sql_payload) {
+        Ok(property) => JsonResponse::send(StatusCode::OK, Some(property), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+    }
+}
+
+async fn remove(
+    State(pool): State<DbPool>,
+    headers: HeaderMap,
+    Path(id): Path<i32>,
+) -> AxumResponse<Property> {
+    let session_user_id = match RequestMiddleware::get_user_uuid(&headers) {
+        Some(id) => id,
+        None => {
+            return JsonResponse::send(
+                StatusCode::UNAUTHORIZED,
+                None,
+                Some("Unauthorized".to_string()),
+            )
+        }
+    };
+
+    let target_property = match Property::find_unique(&pool, &id) {
+        Ok(property) => property,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    let session_agent = match Agent::find_unique(&pool, &target_property.user_id) {
+        Ok(agent) => agent,
+        Err(e) => {
+            return JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string()))
+        }
+    };
+
+    if session_user_id != target_property.user_id {
+        match session_agent.role {
+            AgentRole::Admin => (),
+            _ => {
+                return JsonResponse::send(
+                    StatusCode::FORBIDDEN,
+                    None,
+                    Some("Forbidden".to_string()),
+                )
+            }
+        }
+    }
+
+    match Property::delete(&pool, &id, &session_agent.role) {
+        Ok(p) => JsonResponse::send(StatusCode::OK, Some(p), None),
+        Err(e) => JsonResponse::send(StatusCode::BAD_REQUEST, None, Some(e.to_string())),
+    }
+}
+
 pub fn routes() -> Router<DbPool> {
     let public_routes = Router::new()
         .route("/{id}/join-agents", get(find_unique_join_agent))
@@ -311,6 +568,8 @@ pub fn routes() -> Router<DbPool> {
 
     let session_routes = Router::new()
         .route("/", post(create))
+        .route("/{id}", put(update))
+        .route("/{id}", delete(remove))
         .layer(from_fn(RequestMiddleware::check_session));
 
     public_routes.merge(session_routes)

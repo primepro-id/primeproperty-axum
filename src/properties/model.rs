@@ -6,14 +6,14 @@ use super::{
     },
     property_relation::PropertyJoinAgent,
 };
-use crate::db::DbPoolExt;
 use crate::{
+    agents::AgentRole,
     db::DbPool,
     schema::{agents, properties},
 };
+use crate::{db::DbPoolExt, properties::controllers_new::UpdatePropertySqlPayload};
 use diesel::{
-    BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, PgJsonbExpressionMethods,
-    PgTextExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl,
+    ExpressionMethods, PgJsonbExpressionMethods, QueryDsl, QueryResult, Queryable, RunQueryDsl,
 };
 use serde::Serialize;
 
@@ -32,7 +32,7 @@ pub struct Property {
     gmap_iframe: Option<String>,
     price: i64,
     images: serde_json::Value,
-    purchase_status: PurchaseStatus,
+    pub purchase_status: PurchaseStatus,
     sold_status: SoldStatus,
     measurements: serde_json::Value,
     pub building_type: String,
@@ -283,55 +283,37 @@ impl Property {
             .get_result(conn)
     }
 
-    // pub(super) fn update(
-    //     pool: &DbPool,
-    //     id: &i32,
-    //     payload: &CreateUpdatePropertySqlPayload,
-    // ) -> QueryResult<Property> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    pub(super) fn update(
+        pool: &DbPool,
+        id: &i32,
+        payload: &UpdatePropertySqlPayload,
+    ) -> QueryResult<Property> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
 
-    //     diesel::update(properties::table.filter(properties::id.eq(id)))
-    //         .set(payload)
-    //         .get_result(conn)
-    // }
+        diesel::update(properties::table.filter(properties::id.eq(id)))
+            .set(payload)
+            .get_result(conn)
+    }
 
-    // pub(super) fn delete(pool: &DbPool, id: &i32, role: &AgentRole) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
+    pub(super) fn delete(pool: &DbPool, id: &i32, role: &AgentRole) -> QueryResult<Self> {
+        let conn = &mut match pool.get() {
+            Ok(conn) => conn,
+            Err(e) => return Err(Self::to_diesel_error(e)),
+        };
 
-    //     match role {
-    //         AgentRole::Admin => diesel::delete(properties::table)
-    //             .filter(properties::id.eq(id))
-    //             .get_result(conn),
-    //         AgentRole::Agent => diesel::update(properties::table)
-    //             .filter(properties::id.eq(id))
-    //             .set(properties::is_deleted.eq(true))
-    //             .get_result(conn),
-    //     }
-    // }
-
-    // pub(super) fn update_configurations(
-    //     pool: &DbPool,
-    //     id: &i32,
-    //     payload: &UpdateConfigurationsSqlPayload,
-    // ) -> QueryResult<Self> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-
-    //     diesel::update(properties::table.filter(properties::id.eq(id)))
-    //         .set(payload)
-    //         .get_result(conn)
-    // }
-
-    // pub fn create(
-    //     pool: &DbPool,
-    //     uuid: &uuid::Uuid,
-    //     payload: &CreateUpdatePropertySqlPayload,
-    // ) -> QueryResult<Property> {
-    //     let conn = &mut pool.get().expect("Couldn't get db connection from pool");
-
-    //     diesel::insert_into(properties::table)
-    //         .values((properties::user_id.eq(uuid), payload))
-    //         .get_result(conn)
-    // }
+        match role {
+            AgentRole::Admin => diesel::delete(properties::table)
+                .filter(properties::id.eq(id))
+                .get_result(conn),
+            AgentRole::Agent => diesel::update(properties::table)
+                .filter(properties::id.eq(id))
+                .set(properties::is_deleted.eq(true))
+                .get_result(conn),
+        }
+    }
 }
 
 diesel::define_sql_function! {

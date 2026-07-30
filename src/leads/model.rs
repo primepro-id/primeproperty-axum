@@ -24,18 +24,6 @@ pub struct Lead {
 impl DbPoolExt for Lead {}
 
 impl Lead {
-    pub fn delete_by_property_id(pool: &DbPool, property_id: &i32) -> QueryResult<Self> {
-        let conn = &mut match pool.get() {
-            Ok(conn) => conn,
-            Err(e) => return Err(Self::to_diesel_error(e)),
-        };
-
-        diesel::update(schema::leads::table)
-            .filter(schema::leads::property_id.eq(property_id))
-            .set(schema::leads::is_deleted.eq(true))
-            .get_result(conn)
-    }
-
     pub(super) fn create(pool: &DbPool, payload: &CreateLeadSqlPayload) -> QueryResult<Lead> {
         let conn = &mut match pool.get() {
             Ok(conn) => conn,
