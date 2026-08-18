@@ -83,9 +83,15 @@ impl Property {
             Err(e) => return Err(Self::to_diesel_error(e)),
         };
 
-        let mut property_query = properties::table
-            .filter(properties::is_deleted.eq(false))
-            .into_boxed();
+        let mut property_query = match &query.keyword {
+            Some(_) => properties::table
+                .filter(properties::is_deleted.eq(false))
+                .distinct_on(properties::site_path)
+                .into_boxed(),
+            None => properties::table
+                .filter(properties::is_deleted.eq(false))
+                .into_boxed(),
+        };
 
         if let Some(id) = &query.id {
             if let Some(is_related) = &query.is_related {
@@ -94,6 +100,15 @@ impl Property {
                 }
             } else {
                 property_query = property_query.filter(properties::id.eq(id))
+            }
+        }
+        if let Some(ids) = &query.ids {
+            let id_list: Vec<i32> = ids
+                .split(",")
+                .filter_map(|id| id.trim().parse::<i32>().ok())
+                .collect();
+            if id_list.len() > 0 {
+                property_query = property_query.filter(properties::id.eq_any(id_list));
             }
         }
 
@@ -109,6 +124,7 @@ impl Property {
         if let Some(street) = &query.street {
             property_query = property_query.filter(properties::street.eq(street));
         }
+
         if let Some(purchase_status) = &query.purchase_status {
             property_query = property_query.filter(properties::purchase_status.eq(purchase_status));
         }

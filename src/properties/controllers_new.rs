@@ -44,6 +44,7 @@ pub enum FindQuerySort {
 #[derive(Deserialize, Default)]
 pub struct FindQuery {
     pub id: Option<i32>,
+    pub ids: Option<String>,
     pub agent_id: Option<uuid::Uuid>,
     pub province: Option<String>,
     pub regency: Option<String>,
