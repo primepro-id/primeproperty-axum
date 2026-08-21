@@ -145,6 +145,8 @@ struct CreateAgentPayload {
     fullname: String,
     email: String,
     phone_number: String,
+    profile_picture_url: String,
+    instagram: Option<String>,
 }
 
 #[derive(Deserialize, Insertable)]
@@ -154,6 +156,8 @@ pub struct CreateAgentFromSupertokensPayload {
     fullname: String,
     email: String,
     phone_number: String,
+    profile_picture_url: String,
+    instagram: Option<String>,
 }
 
 async fn create(
@@ -176,6 +180,8 @@ async fn create(
         fullname: payload.fullname.to_lowercase(), // must be lowercase
         email: payload.email,
         phone_number: payload.phone_number,
+        profile_picture_url: payload.profile_picture_url,
+        instagram: payload.instagram,
     };
 
     let agent = match Agent::create_from_supertokens(&pool, &payload) {
