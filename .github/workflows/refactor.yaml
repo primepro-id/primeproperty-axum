@@ -3,11 +3,7 @@ name: Build pipeline
 on:
   push:
     branches:
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
+      - refactor/v2
 
 jobs:
   build_and_test:
@@ -30,4 +26,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/primeproperty-axum:develop
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/primeproperty-axum:refactor
