@@ -41,14 +41,24 @@ async fn upload_images(mut multipart: Multipart) -> AxumResponse<Vec<S3Image>> {
         } else {
             "jpg"
         };
-        let bytes = field.bytes().await.unwrap();
+        let bytes = match field.bytes().await {
+            Ok(b) => b,
+            Err(err) => {
+                println!("[upload_images_bytes] ERROR {:?}", err);
+                return JsonResponse::send(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    None,
+                    Some(err.to_string()),
+                );
+            }
+        };
         let file_upload = S3Image::upload(bytes, &content_type, extension).await;
         match file_upload {
             Ok(image) => {
                 uploaded_files.push(image);
             }
             Err(err) => {
-                println!("[upload_images] ERROR {:?}", err);
+                println!("[upload_images_upload] ERROR {:?}", err);
                 return JsonResponse::send(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     None,

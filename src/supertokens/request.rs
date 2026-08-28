@@ -93,3 +93,9 @@ pub struct DeleteUserEmailRequest {
     pub(super) recipeUserId: String,
     pub(super) email: Option<String>,
 }
+
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub struct RemoveSessionRequest {
+    pub(super) sessionHandles: Vec<String>,
+}

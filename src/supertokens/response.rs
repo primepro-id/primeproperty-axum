@@ -153,3 +153,8 @@ pub struct VerifySessionResponse {
     pub status: String,
     pub session: Session,
 }
+
+#[derive(Deserialize, Serialize)]
+pub struct RemoveSessionResponse {
+    pub(super) status: String,
+}

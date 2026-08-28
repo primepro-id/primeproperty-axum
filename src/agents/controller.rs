@@ -5,7 +5,10 @@ use crate::{
     mail::Mail,
     middleware::{AxumResponse, DataAndPagination, JsonResponse, Pagination, RequestMiddleware},
     schema,
-    supertokens::{CreateSessionResponse, SuperTokens, UpdateUserResponse},
+    supertokens::{
+        CreateSessionResponse, RemoveSessionResponse, SuperTokens, UpdateUserResponse,
+        VerifySessionResponse,
+    },
 };
 use axum::Router;
 use axum::{
@@ -225,6 +228,20 @@ async fn create(
 }
 
 #[derive(Deserialize)]
+pub struct VerifySessionPayload {
+    access_token: String,
+}
+
+async fn verify_session(
+    Json(payload): Json<VerifySessionPayload>,
+) -> AxumResponse<VerifySessionResponse> {
+    match SuperTokens::verify_session(&payload.access_token).await {
+        Ok(s) => JsonResponse::send(StatusCode::OK, Some(s), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+    }
+}
+
+#[derive(Deserialize)]
 pub struct RefreshSessionPayload {
     refresh_token: String,
 }
@@ -233,6 +250,20 @@ async fn refresh_session(
     Json(payload): Json<RefreshSessionPayload>,
 ) -> AxumResponse<CreateSessionResponse> {
     match SuperTokens::refresh_session(&payload.refresh_token).await {
+        Ok(s) => JsonResponse::send(StatusCode::OK, Some(s), None),
+        Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct RemoveSessionPayload {
+    supertokens_user_id: String,
+}
+
+async fn remove_session(
+    Json(payload): Json<RemoveSessionPayload>,
+) -> AxumResponse<RemoveSessionResponse> {
+    match SuperTokens::remove_session(&payload.supertokens_user_id).await {
         Ok(s) => JsonResponse::send(StatusCode::OK, Some(s), None),
         Err(e) => JsonResponse::send(StatusCode::INTERNAL_SERVER_ERROR, None, Some(e.to_string())),
     }
@@ -399,7 +430,9 @@ pub fn routes() -> Router<DbPool> {
         .route("/signin", post(signin))
         .route("/password-reset-token", post(create_password_reset_token))
         .route("/password-reset", post(password_reset))
-        .route("/session/refresh", post(refresh_session));
+        .route("/session/verify", post(verify_session))
+        .route("/session/refresh", post(refresh_session))
+        .route("/session/remove", post(remove_session));
 
     let session_routes = Router::new()
         .route("/{id}", put(update))

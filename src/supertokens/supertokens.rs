@@ -1,12 +1,12 @@
 use super::{
     request::{
         ConsumePasswordResetTokenRequest, CreatePasswordResetTokenRequest, CreateSessionRequest,
-        DeleteUserEmailRequest, RefreshSessionRequest, SigninRequest, UpdateUserPasswordRequest,
-        VerifySessionRequest,
+        DeleteUserEmailRequest, RefreshSessionRequest, RemoveSessionRequest, SigninRequest,
+        UpdateUserPasswordRequest, VerifySessionRequest,
     },
     response::{
         ConsumePasswordResetTokenResponse, CreatePasswordResetTokenResponse, CreateSessionResponse,
-        SigninResponse, UpdateUserResponse, VerifySessionResponse,
+        RemoveSessionResponse, SigninResponse, UpdateUserResponse, VerifySessionResponse,
     },
 };
 use crate::{agents::Agent, envs::Envs};
@@ -94,6 +94,23 @@ impl SuperTokens {
     ) -> Result<CreateSessionResponse, reqwest::Error> {
         let req = RefreshSessionRequest::new(refresh_token);
         let res = match Self::post(Self::REFRESH_SESSION_PATH, &req).await {
+            Ok(r) => r,
+            Err(e) => return Err(e),
+        };
+
+        res.json().await
+    }
+
+    const REMOVE_SESSION_PATH: &str = "/recipe/session/remove";
+    pub async fn remove_session(
+        supertokens_user_id: &str,
+    ) -> Result<RemoveSessionResponse, reqwest::Error> {
+        let mut handles = Vec::new();
+        handles.push(supertokens_user_id.to_string());
+        let req = RemoveSessionRequest {
+            sessionHandles: handles,
+        };
+        let res = match Self::post(Self::REMOVE_SESSION_PATH, &req).await {
             Ok(r) => r,
             Err(e) => return Err(e),
         };

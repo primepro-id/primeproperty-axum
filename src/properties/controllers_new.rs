@@ -218,7 +218,7 @@ pub struct CreatePropertyPayload {
     building_certificate: String,
     specifications: Specifications,
     facilities: Vec<Facility>,
-    configurations: Vec<Configurations>,
+    configurations: Configurations,
     currency: Currency,
     rent_time: Option<RentTime>,
     price_down_payment: Option<i64>,
