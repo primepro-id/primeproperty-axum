@@ -13,7 +13,7 @@ mod supertokens;
 
 use crate::db::build_db_pool;
 use crate::envs::Envs;
-use axum::http::{HeaderValue, Method};
+use axum::http::{HeaderName, HeaderValue, Method};
 use axum::Router;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use tower_http::cors::CorsLayer;
@@ -55,6 +55,7 @@ async fn main() {
             .allow_headers([
                 axum::http::header::CONTENT_TYPE,
                 axum::http::header::AUTHORIZATION,
+                HeaderName::from_static("x-access-token"),
             ]),
         _ => CorsLayer::permissive(),
     };

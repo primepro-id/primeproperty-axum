@@ -77,7 +77,6 @@ async fn find(
         }
     };
 
-    println!("Session User ID: {}", session_user_id);
     let session_agent = match Agent::find_unique(&pool, &session_user_id) {
         Ok(agent) => agent,
         Err(e) => {
@@ -85,7 +84,6 @@ async fn find(
         }
     };
 
-    println!("Session Agent: {:?}", session_agent);
     let leads = match Lead::find(&pool, &session_agent.role, &session_agent.id) {
         Ok(l) => l,
         Err(err) => {
