@@ -41,6 +41,7 @@ impl Lead {
             Err(e) => return Err(Self::to_diesel_error(e)),
         };
 
+        println!("Agent Role and ID: {:?}, {}", role, agent_id);
         match role {
             AgentRole::Admin => schema::leads::table
                 .order_by(schema::leads::created_at.desc())
