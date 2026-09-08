@@ -30,7 +30,7 @@ impl Agent {
         };
 
         agents::table
-            .filter(agents::role.ne(AgentRole::Admin))
+            .filter(agents::email.ne("admin@primeproindonesia.com"))
             .get_results(conn)
     }
 
