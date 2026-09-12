@@ -222,6 +222,7 @@ pub struct CreatePropertyPayload {
     currency: Currency,
     rent_time: Option<RentTime>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 impl CreatePropertyPayload {
@@ -263,6 +264,7 @@ impl CreatePropertyPayload {
             currency: self.currency,
             rent_time: self.rent_time,
             price_down_payment: self.price_down_payment,
+            developer_id: self.developer_id,
         }
     }
 }
@@ -292,6 +294,7 @@ pub struct CreatePropertySqlPayload {
     currency: Currency,
     rent_time: Option<RentTime>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 async fn create(
@@ -341,6 +344,7 @@ pub struct UpdatePropertyPayload {
     currency: Option<Currency>,
     rent_time: Option<RentTime>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 impl UpdatePropertyPayload {
@@ -428,6 +432,7 @@ impl UpdatePropertyPayload {
             currency: self.currency,
             rent_time: self.rent_time,
             price_down_payment: self.price_down_payment,
+            developer_id: self.developer_id,
         }
     }
 }
@@ -458,6 +463,7 @@ pub struct UpdatePropertySqlPayload {
     currency: Option<Currency>,
     rent_time: Option<RentTime>,
     price_down_payment: Option<i64>,
+    developer_id: Option<i32>,
 }
 
 async fn update(
